@@ -6,6 +6,19 @@ const {getDefaultConfig, mergeConfig} = require('@react-native/metro-config');
  *
  * @type {import('metro-config').MetroConfig}
  */
-const config = {};
+const defaultConfig = getDefaultConfig(__dirname);
 
-module.exports = mergeConfig(getDefaultConfig(__dirname), config);
+const config = {
+  resolver: {
+    resolveRequest: (context, moduleName, platform) => {
+      // react-native-reanimated expects fbjs/lib/invariant but fbjs 3.x doesn't ship it.
+      // Resolve to the standalone invariant package instead.
+      if (moduleName === 'fbjs/lib/invariant') {
+        return context.resolveRequest(context, 'invariant', platform);
+      }
+      return context.resolveRequest(context, moduleName, platform);
+    },
+  },
+};
+
+module.exports = mergeConfig(defaultConfig, config);

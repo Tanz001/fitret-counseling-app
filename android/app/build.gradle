@@ -108,12 +108,21 @@ dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
     implementation("com.facebook.react:flipper-integration")
-
+implementation project(':react-native-vector-icons')
+implementation project(':react-native-system-setting')
+implementation project(':react-native-gesture-handler')
+    
+     implementation 'androidx.work:work-runtime:2.7.1'
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {
         implementation jscFlavor
     }
 }
+project.ext.vectoricons = [
+    iconFontsDir: file("${rootProject.projectDir}/../node_modules/react-native-vector-icons/Fonts"),
+    iconFontNames: ["Ionicons.ttf", "MaterialIcons.ttf", "MaterialCommunityIcons.ttf", "FontAwesome.ttf", "FontAwesome5_Solid.ttf", "FontAwesome5_Regular.ttf", "Feather.ttf", "Entypo.ttf", "AntDesign.ttf"]
+]
+apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")
 
 apply from: file("../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle"); applyNativeModulesAppBuildGradle(project)
