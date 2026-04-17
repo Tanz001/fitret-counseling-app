@@ -6,7 +6,7 @@ import { supabase } from '../utils/supabase';
 const Splash = ({ navigation }) => {
   useEffect(() => {
     const goToAuthOrIntro = async () => {
-      navigation.replace('AuthScreens');
+      navigation.replace('AuthWelcome');
     };
 
     const checkUser = async () => {

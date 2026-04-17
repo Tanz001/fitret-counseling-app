@@ -8,11 +8,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../utils/supabase';
 
 const RESOURCE_ITEMS = [
-  { icon: 'headphones', iconType: 'Feather', label: 'Podcasts', route: null },
+  { icon: 'headphones', iconType: 'Feather', label: 'Guided exercises', route: null },
   { icon: 'book', iconType: 'Feather', label: 'Articles', route: null },
-  { icon: 'smile', iconType: 'Feather', label: 'Mood Tracker', route: 'PatientMoodTracker' },
-  { icon: 'edit-3', iconType: 'Feather', label: 'Journal', route: 'PatientJournal' },
-  { icon: 'message-circle', iconType: 'Feather', label: 'AI Chat Bot', route: 'Chat' },
+  { icon: 'message-circle', iconType: 'Feather', label: 'Fitret Chat', route: 'Chat' },
 ];
 
 const DEFAULT_PATIENT = {
@@ -72,7 +70,7 @@ const PatientProfileScreen = ({ navigation, route }) => {
       // ignore
     }
     await AsyncStorage.clear();
-    navigation.reset({ index: 0, routes: [{ name: 'AuthScreens' }] });
+    navigation.reset({ index: 0, routes: [{ name: 'AuthWelcome' }] });
   };
 
   const renderOptionRow = (icon, iconType, title, route) => (
@@ -133,7 +131,6 @@ const PatientProfileScreen = ({ navigation, route }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Settings</Text>
           {renderOptionRow('bell', 'Feather', 'Notifications', 'Notifications')}
-          {renderOptionRow('book-open', 'Feather', 'My Journal', 'PatientJournal')}
           {renderOptionRow('lock', 'Feather', 'Privacy & Security')}
           {renderOptionRow('credit-card', 'Feather', 'Payment Methods')}
           {renderOptionRow('file-text', 'Feather', 'Intake Forms')}

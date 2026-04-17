@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Ima
 import CustomIcon from '../components/CustomIcon';
 import { supabase } from '../utils/supabase';
 import { COLORS, FONTS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
+import { formatEtb } from '../constants/currency';
 
 const PaymentScreen = ({ navigation, route }) => {
   const { therapist, date, time, dbDate, dbTime, amount } = route?.params || {};
@@ -109,7 +110,7 @@ const PaymentScreen = ({ navigation, route }) => {
           <Text style={styles.sessionInfo}>Session on {date} at {time}</Text>
           <View style={styles.amountRow}>
             <Text style={styles.amountLabel}>Total Fee</Text>
-            <Text style={styles.amount}>ETB {Number(amount || 120).toFixed(2)}</Text>
+            <Text style={styles.amount}>{formatEtb(amount || 120)}</Text>
           </View>
         </View>
 
@@ -127,7 +128,7 @@ const PaymentScreen = ({ navigation, route }) => {
           onPress={handlePay}
           disabled={loading}
         >
-          {loading ? <ActivityIndicator color="white" /> : <Text style={styles.payBtnText}>Confirm and Pay ETB {Number(amount || 120).toFixed(2)}</Text>}
+          {loading ? <ActivityIndicator color="white" /> : <Text style={styles.payBtnText}>Confirm and Pay {formatEtb(amount || 120)}</Text>}
         </TouchableOpacity>
       </View>
 
@@ -156,7 +157,7 @@ const PaymentScreen = ({ navigation, route }) => {
               </View>
               <View style={styles.infoRow}>
                 <CustomIcon name="dollar-sign" size={16} color={COLORS.gray500} iconType="Feather" touchable={false} />
-                <Text style={styles.infoValue}>Total Paid: ETB {Number(amount || 120).toFixed(2)}</Text>
+                <Text style={styles.infoValue}>Total Paid: {formatEtb(amount || 120)}</Text>
               </View>
             </View>
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
 import CustomIcon from '../components/CustomIcon';
 import { COLORS, FONTS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
+import { formatEtb } from '../constants/currency';
 
 const MOCK_TRANSACTIONS = [
   {
@@ -10,7 +11,7 @@ const MOCK_TRANSACTIONS = [
     service: 'Video Therapy Session',
     date: 'Oct 12, 2026',
     time: '10:00 AM',
-    amount: '$120.00',
+    amount: formatEtb(120),
     method: 'Visa •••• 4242',
     status: 'Completed',
   },
@@ -20,7 +21,7 @@ const MOCK_TRANSACTIONS = [
     service: 'Couples Counseling',
     date: 'Sep 28, 2026',
     time: '02:00 PM',
-    amount: '$150.00',
+    amount: formatEtb(150),
     method: 'MasterCard •••• 8812',
     status: 'Completed',
   },
@@ -30,7 +31,7 @@ const MOCK_TRANSACTIONS = [
     service: 'Initial Consultation',
     date: 'Sep 10, 2026',
     time: '11:00 AM',
-    amount: '$90.00',
+    amount: formatEtb(90),
     method: 'Apple Pay',
     status: 'Completed',
   },
@@ -40,7 +41,7 @@ const MOCK_TRANSACTIONS = [
     service: 'Video Therapy Session',
     date: 'Aug 24, 2026',
     time: '10:00 AM',
-    amount: '$120.00',
+    amount: formatEtb(120),
     method: 'Visa •••• 4242',
     status: 'Completed',
   }
@@ -61,7 +62,7 @@ const PatientTransactionsScreen = ({ navigation }) => {
         
         <View style={styles.summaryCard}>
            <Text style={styles.summaryTitle}>Total Spent (YTD)</Text>
-           <Text style={styles.summaryAmount}>$480.00</Text>
+           <Text style={styles.summaryAmount}>{formatEtb(480)}</Text>
            <Text style={styles.summarySubtitle}>4 Sessions in 2026</Text>
         </View>
 

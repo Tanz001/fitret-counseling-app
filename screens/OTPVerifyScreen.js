@@ -35,7 +35,7 @@ const OTPVerifyScreen = ({ navigation, route }) => {
       });
       if (error) throw error;
       Alert.alert('Verified', 'Your email is verified. You can sign in now.', [
-        { text: 'OK', onPress: () => navigation.navigate('AuthScreens', { showLogin: true }) },
+        { text: 'OK', onPress: () => navigation.navigate('AuthWelcome') },
       ]);
     } catch (e) {
       Alert.alert('Verification failed', e.message || 'Invalid or expired code.');

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import CustomIcon from '../components/CustomIcon';
 import {COLORS, FONTS, SPACING, RADIUS, SHADOWS} from '../constants/theme';
+import { formatEtb } from '../constants/currency';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {supabase} from '../utils/supabase';
 
@@ -121,7 +122,7 @@ const DoctorProfileScreen = ({navigation, route}) => {
               </Text>
               {therapist.fee != null && !isNaN(therapist.fee) && (
                 <Text style={styles.feeText}>
-                  Session fee: ${Number(therapist.fee).toFixed(2)}
+                  Session fee: {formatEtb(therapist.fee)}
                 </Text>
               )}
             </View>

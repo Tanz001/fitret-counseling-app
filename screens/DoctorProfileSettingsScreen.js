@@ -120,7 +120,7 @@ const DoctorProfileSettingsScreen = ({navigation}) => {
       // ignore
     }
     await AsyncStorage.clear();
-    navigation.reset({index: 0, routes: [{name: 'AuthScreens'}]});
+    navigation.reset({index: 0, routes: [{name: 'AuthWelcome'}]});
   };
 
   const renderOptionRow = (icon, title, route = null, customColor = null) => {

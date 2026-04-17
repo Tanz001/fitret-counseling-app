@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image, StatusBar, ActivityIndicator } from 'react-native';
 import CustomIcon from '../components/CustomIcon';
 import { COLORS, FONTS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
+import { formatEtb } from '../constants/currency';
 import { supabase } from '../utils/supabase';
 import moment from 'moment';
 
@@ -38,7 +39,7 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
         date: moment(data.appointment_date).format('MMM D, YYYY'),
         time: data.appointment_time,
         image: therapist.profile_picture ? { uri: therapist.profile_picture } : require('../assets/person.webp'),
-        amount: `$${data.fee}`,
+        amount: formatEtb(data.fee),
         paymentMethod: data.payment_method?.toUpperCase() || 'Not specified',
         notes: data.notes || initialAppointment.notes, // Fallback to initial if DB is empty but route has it
         experience: `${therapist.experience_years || 8} years`,

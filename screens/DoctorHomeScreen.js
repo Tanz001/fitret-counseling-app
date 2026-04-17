@@ -19,6 +19,7 @@ import Svg, {
 } from 'react-native-svg';
 import CustomIcon from '../components/CustomIcon';
 import {COLORS, FONTS, SPACING, RADIUS, SHADOWS} from '../constants/theme';
+import { formatEtb } from '../constants/currency';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {supabase} from '../utils/supabase';
 import moment from 'moment';
@@ -205,7 +206,7 @@ const DoctorHomeScreen = ({navigation}) => {
           <View style={styles.statsCard}>
             <View style={styles.statColumn}>
               <Text style={styles.statLabel}>Total Earnings</Text>
-              <Text style={styles.statNumber}>${stats.earnings}</Text>
+              <Text style={styles.statNumber}>{formatEtb(stats.earnings)}</Text>
               <Text style={styles.statSubInfo}>Lifetime sum</Text>
             </View>
             <View style={styles.divider} />

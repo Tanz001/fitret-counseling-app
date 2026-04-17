@@ -374,7 +374,7 @@ class Doctor_Home extends React.Component {
             { label: 'Total Completed Appointments', val: '14', color: '#19B46E', icon: 'calendar-check', iconType: 'MaterialCommunityIcons' },
             { label: 'Total Cancel Appointments', val: '2', color: '#D91F11', icon: 'calendar-times', iconType: 'FontAwesome5' },
             { label: 'No of patients', val: '34', color: '#3085F4', icon: 'female', iconType: 'FontAwesome5' },
-            { label: 'Total Earning', val: '$200,000', color: '#F5C518', icon: 'dollar', iconType: 'FontAwesome' },
+            { label: 'Total Earning', val: 'ETB 200,000', color: '#F5C518', icon: 'dollar', iconType: 'FontAwesome' },
           ].map((stat, i) => (
             <View key={i} style={{
               width: width / 1.1,

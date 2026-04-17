@@ -2,13 +2,14 @@ import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, FlatList, TouchableOpacity, StatusBar } from 'react-native';
 import CustomIcon from '../components/CustomIcon';
 import { COLORS, FONTS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
+import { formatEtb, formatEtbSigned } from '../constants/currency';
 
 const MOCK_TRANSACTIONS = [
-  { id: '1', title: 'Session with John Doe', date: 'Today, 11:00 AM', amount: '+$120.00', type: 'credit', status: 'Completed' },
-  { id: '2', title: 'Withdrawal to Bank', date: 'Yesterday, 06:30 PM', amount: '-$500.00', type: 'debit', status: 'Processing' },
-  { id: '3', title: 'Session with Sarah M.', date: 'Oct 12, 02:00 PM', amount: '+$150.00', type: 'credit', status: 'Completed' },
-  { id: '4', title: 'Session with Marcus Webb', date: 'Oct 10, 09:00 AM', amount: '+$120.00', type: 'credit', status: 'Completed' },
-  { id: '5', title: 'Platform Fee (Oct)', date: 'Oct 01, 12:00 PM', amount: '-$45.00', type: 'debit', status: 'Completed' },
+  { id: '1', title: 'Session with John Doe', date: 'Today, 11:00 AM', amount: formatEtbSigned(120, 'credit'), type: 'credit', status: 'Completed' },
+  { id: '2', title: 'Withdrawal to Bank', date: 'Yesterday, 06:30 PM', amount: formatEtbSigned(500, 'debit'), type: 'debit', status: 'Processing' },
+  { id: '3', title: 'Session with Sarah M.', date: 'Oct 12, 02:00 PM', amount: formatEtbSigned(150, 'credit'), type: 'credit', status: 'Completed' },
+  { id: '4', title: 'Session with Marcus Webb', date: 'Oct 10, 09:00 AM', amount: formatEtbSigned(120, 'credit'), type: 'credit', status: 'Completed' },
+  { id: '5', title: 'Platform Fee (Oct)', date: 'Oct 01, 12:00 PM', amount: formatEtbSigned(45, 'debit'), type: 'debit', status: 'Completed' },
 ];
 
 const DoctorWalletScreen = ({ navigation }) => {
@@ -52,17 +53,17 @@ const DoctorWalletScreen = ({ navigation }) => {
 
         <View style={styles.balanceCard}>
            <Text style={styles.balanceLabel}>Available for Withdrawal</Text>
-           <Text style={styles.balanceAmount}>$1,250.00</Text>
+           <Text style={styles.balanceAmount}>{formatEtb(1250)}</Text>
            
            <View style={styles.heroStatsRow}>
              <View style={styles.heroStatItem}>
                <Text style={styles.heroStatTitle}>Total Earned YTD</Text>
-               <Text style={styles.heroStatValue}>$24,500</Text>
+               <Text style={styles.heroStatValue}>{formatEtb(24500)}</Text>
              </View>
              <View style={styles.heroStatDivider} />
              <View style={styles.heroStatItem}>
                <Text style={styles.heroStatTitle}>Pending</Text>
-               <Text style={styles.heroStatValue}>$360</Text>
+               <Text style={styles.heroStatValue}>{formatEtb(360)}</Text>
              </View>
            </View>
 

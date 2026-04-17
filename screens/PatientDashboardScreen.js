@@ -135,6 +135,13 @@ const PatientDashboardScreen = ({navigation}) => {
     return 'Good evening';
   };
 
+  const getGreetingEmoji = () => {
+    const hour = moment().hour();
+    if (hour < 12) return '☀️';
+    if (hour < 18) return '🌤️';
+    return '🌙';
+  };
+
   const getNextSessionText = () => {
     if (!pendingSessions.length) return null;
 
@@ -188,7 +195,7 @@ const PatientDashboardScreen = ({navigation}) => {
           <View style={styles.headerRow}>
             <View style={{flex: 1}}>
               <Text style={styles.dateText}>{moment().format('dddd, MMMM Do YYYY')}</Text>
-              <Text style={styles.greeting}>{getGreeting()}, {userName} ☀️</Text>
+              <Text style={styles.greeting}>{getGreeting()}, {userName} {getGreetingEmoji()}</Text>
               <Text style={styles.subGreeting}>Here's your wellness overview</Text>
               <Text style={styles.quoteText}>"{quote}"</Text>
             </View>
@@ -240,14 +247,14 @@ const PatientDashboardScreen = ({navigation}) => {
               <View style={[styles.toolIconBg, { backgroundColor: COLORS.accent }]}>
                 <CustomIcon name="headphones" size={24} color={COLORS.primary} iconType="Feather" touchable={false} />
               </View>
-              <Text style={styles.toolLabel}>Audio</Text>
+              <Text style={styles.toolLabel}>Guided exercises</Text>
             </TouchableOpacity>
  
              <TouchableOpacity style={styles.toolCard} onPress={() => navigation.navigate('Chat')}>
               <View style={[styles.toolIconBg, { backgroundColor: COLORS.accent }]}>
                 <CustomIcon name="message-circle" size={24} color={COLORS.primary} iconType="Feather" touchable={false} />
               </View>
-              <Text style={styles.toolLabel}>AI Chat</Text>
+              <Text style={styles.toolLabel}>Fitret Chat</Text>
             </TouchableOpacity>
           </View>
         </View>

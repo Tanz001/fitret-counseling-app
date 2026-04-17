@@ -8,6 +8,7 @@ import { supabase } from './utils/supabase';
 // New Screens
 import Splash from "./screens/Splash";
 import AuthScreens from "./screens/AuthScreens";
+import AuthWelcomeScreen from "./screens/AuthWelcomeScreen";
 import OTPVerifyScreen from "./screens/OTPVerifyScreen";
 
 // Patient flow
@@ -74,6 +75,7 @@ export default function App() {
           
           {/* Welcome & Auth */}
           <Stack.Screen name="Splash" component={Splash} />
+          <Stack.Screen name="AuthWelcome" component={AuthWelcomeScreen} />
           <Stack.Screen name="AuthScreens" component={AuthScreens} />
           <Stack.Screen name="OTPVerify" component={OTPVerifyScreen} />
           

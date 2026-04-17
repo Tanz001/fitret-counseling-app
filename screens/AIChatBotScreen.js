@@ -21,7 +21,7 @@ const AI_AVATAR = require('../assets/person.webp'); // Replace with a bot icon i
 const INITIAL_MESSAGES = [
   {
     id: '1',
-    text: "Hello! I'm your Fitret AI Assistant. How are you feeling today?",
+    text: "Hello! Welcome to Fitret Chat. How are you feeling today?",
     sender: 'ai',
     timestamp: new Date().toISOString(),
   },
@@ -82,7 +82,7 @@ const AIChatBotScreen = ({ navigation }) => {
           <CustomIcon name="chevron-left" size={24} color={COLORS.gray700} iconType="Feather" touchable={false} />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>Fitret AI</Text>
+          <Text style={styles.headerTitle}>Fitret Chat</Text>
           <View style={styles.statusRow}>
             <View style={styles.onlineDot} />
             <Text style={styles.statusText}>Always Online</Text>
@@ -106,7 +106,7 @@ const AIChatBotScreen = ({ navigation }) => {
       {isTyping && (
         <View style={styles.typingContainer}>
           <ActivityIndicator size="small" color={COLORS.primary} />
-          <Text style={styles.typingText}>AI is thinking...</Text>
+          <Text style={styles.typingText}>Thinking...</Text>
         </View>
       )}
 

@@ -101,7 +101,7 @@ const DoctorSetupScreen = ({ navigation }) => {
             </View>
 
             <View style={styles.formGroup}>
-               <Text style={styles.label}>Session Fee ($)</Text>
+               <Text style={styles.label}>Session Fee (ETB)</Text>
                <TextInput 
                   style={styles.input}
                   placeholder="e.g. 50.00"

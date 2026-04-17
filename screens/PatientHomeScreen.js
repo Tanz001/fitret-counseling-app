@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, SafeAreaView, TextInput, FlatList, Image, Touch
 import CustomIcon from '../components/CustomIcon';
 import RBSheet from "react-native-raw-bottom-sheet";
 import { COLORS, FONTS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
+import { formatEtb } from '../constants/currency';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../utils/supabase';
 import { useFocusEffect } from '@react-navigation/native';
@@ -162,7 +163,7 @@ const PatientHomeScreen = ({ navigation }) => {
         <Text style={styles.title}>{item.title}</Text>
         <Text style={styles.subtitle}>{item.subtitle}</Text>
         {item.fee != null && !isNaN(item.fee) && (
-          <Text style={styles.feeText}>${Number(item.fee).toFixed(2)}/session</Text>
+          <Text style={styles.feeText}>{formatEtb(item.fee)}/session</Text>
         )}
       </View>
       <TouchableOpacity

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Image } from 'react-native';
 import CustomIcon from '../components/CustomIcon';
 import { COLORS, FONTS, SPACING, RADIUS } from '../constants/theme';
+import { formatEtb } from '../constants/currency';
 
 const BookingSuccessScreen = ({ navigation, route }) => {
   const { therapist, date, time, amount } = route?.params || {};
@@ -19,7 +20,7 @@ const BookingSuccessScreen = ({ navigation, route }) => {
           <Image source={therapist?.image || require('../assets/person.webp')} style={styles.avatar} />
           <Text style={styles.therapistName}>{therapist?.name || 'Dr. Aisha Rahman'}</Text>
           <Text style={styles.detailText}>Day {date} at {time}</Text>
-          <Text style={styles.amountText}>${amount || 120} paid</Text>
+          <Text style={styles.amountText}>{formatEtb(amount || 120)} paid</Text>
         </View>
 
         <Text style={styles.note}>A confirmation email has been sent. You can view this appointment in the Appointments tab.</Text>
@@ -39,7 +40,7 @@ const BookingSuccessScreen = ({ navigation, route }) => {
               date: `Oct ${date}, 2026`,
               time,
               status: 'Pending',
-              amount: `$${amount}`,
+              amount: formatEtb(amount),
             },
           })}
         >

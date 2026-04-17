@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, FlatList, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import CustomIcon from '../components/CustomIcon';
 import { COLORS, FONTS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
+import { formatEtb } from '../constants/currency';
 import { PatientAppointmentSkeleton } from '../components/SkeletonLoaders';
 import { supabase } from '../utils/supabase';
 import { useFocusEffect } from '@react-navigation/native';
@@ -76,7 +77,7 @@ const AppointmentsScreen = ({ navigation }) => {
             date: formattedDate,
             time: item.appointment_time,
             image: therapist.profile_picture ? { uri: therapist.profile_picture } : require('../assets/person.webp'),
-            amount: `$${item.fee}`,
+            amount: formatEtb(item.fee),
             paymentMethod: item.payment_method?.toUpperCase() || 'Not specified'
           } 
         })}

@@ -786,7 +786,7 @@ style={{ width: width / 1.1, alignSelf: 'center', backgroundColor: 'white', bord
                                                                       />  
 
               <Text style={{ color: 'white', wiadth:'70%',  fontWeight: '600',fontSize:15 }}> In-clinic Appointment</Text>
-              <Text style={{ color: 'white',   fontWeight: '600',fontSize:15 }}> ${fee} Fees</Text>
+              <Text style={{ color: 'white',   fontWeight: '600',fontSize:15 }}> ETB {fee} Fees</Text>
                                    
 
             </View>
