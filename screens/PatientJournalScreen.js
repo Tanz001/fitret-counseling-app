@@ -199,11 +199,15 @@ const PatientJournalScreen = ({ navigation }) => {
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
 
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+        <TouchableOpacity style={styles.headerSide} onPress={() => navigation.goBack()}>
           <CustomIcon name="chevron-left" size={24} color={COLORS.gray900} iconType="Feather" touchable={false} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Therapy Journal</Text>
-        <View style={styles.backBtn} />
+        <View style={styles.headerTitleWrap}>
+          <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+            Therapy Journal
+          </Text>
+        </View>
+        <View style={styles.headerSide} />
       </View>
 
       <KeyboardAvoidingView
@@ -405,15 +409,34 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
+    paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.md,
     backgroundColor: COLORS.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.gray100,
   },
-  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: FONTS.sizes.lg, fontWeight: '700', color: COLORS.gray900 },
+  headerSide: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.gray50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitleWrap: {
+    flex: 1,
+    minWidth: 0,
+    paddingHorizontal: SPACING.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: FONTS.sizes.lg,
+    fontWeight: '700',
+    color: COLORS.gray900,
+    textAlign: 'center',
+    width: '100%',
+  },
 
   content: { padding: SPACING.lg, paddingBottom: SPACING.xxl * 2 },
 

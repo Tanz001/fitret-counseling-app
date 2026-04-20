@@ -81,6 +81,7 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+        multiDexEnabled true
     }
     signingConfigs {
         debug {
@@ -102,6 +103,15 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
 }
 
 dependencies {
@@ -111,7 +121,7 @@ dependencies {
 implementation project(':react-native-vector-icons')
 implementation project(':react-native-system-setting')
 implementation project(':react-native-gesture-handler')
-    
+
      implementation 'androidx.work:work-runtime:2.7.1'
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

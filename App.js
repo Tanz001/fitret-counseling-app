@@ -24,6 +24,9 @@ import PatientTransactionsScreen from "./screens/PatientTransactionsScreen";
 import PatientMoodTrackerScreen from "./screens/PatientMoodTrackerScreen";
 import PatientJournalScreen from "./screens/PatientJournalScreen";
 import PatientWorksheetsScreen from "./screens/PatientWorksheetsScreen";
+import PatientPlansScreen from "./screens/PatientPlansScreen";
+import PatientMyPlansScreen from "./screens/PatientMyPlansScreen";
+import PatientGuidedExercisesScreen from "./screens/PatientGuidedExercisesScreen";
 
 // Doctor flow
 import DoctorTabNavigator from "./screens/DoctorTabNavigator";
@@ -31,6 +34,7 @@ import DoctorAppointmentDetailScreen from "./screens/DoctorAppointmentDetailScre
 import DoctorSetupScreen from "./screens/DoctorSetupScreen";
 import DoctorWalletScreen from "./screens/DoctorWalletScreen";
 import DoctorScheduleScreen from "./screens/DoctorScheduleScreen";
+import TherapistTherapyDocumentsScreen from "./screens/TherapistTherapyDocumentsScreen";
 
 // Shared/Secondary Flow
 import VideoCallScreen from "./screens/VideoCallScreen";
@@ -89,6 +93,9 @@ export default function App() {
           <Stack.Screen name="PatientMoodTracker" component={PatientMoodTrackerScreen} />
           <Stack.Screen name="PatientJournal" component={PatientJournalScreen} />
           <Stack.Screen name="PatientWorksheets" component={PatientWorksheetsScreen} />
+          <Stack.Screen name="PatientPlans" component={PatientPlansScreen} />
+          <Stack.Screen name="PatientMyPlans" component={PatientMyPlansScreen} />
+          <Stack.Screen name="PatientGuidedExercises" component={PatientGuidedExercisesScreen} />
           <Stack.Screen name="DoctorProfile" component={DoctorProfileScreen} />
           <Stack.Screen name="Reviews" component={ReviewsScreen} />
           <Stack.Screen name="AppointmentDetail" component={AppointmentDetailScreen} />
@@ -104,6 +111,7 @@ export default function App() {
           <Stack.Screen name="DoctorTabNavigator" component={DoctorTabNavigator} />
           <Stack.Screen name="DoctorAppointmentDetail" component={DoctorAppointmentDetailScreen} />
           <Stack.Screen name="DoctorWallet" component={DoctorWalletScreen} />
+          <Stack.Screen name="TherapistTherapyDocuments" component={TherapistTherapyDocumentsScreen} />
 
           {/* Shared / Secondary Stack */}
           <Stack.Screen name="VideoCall" component={VideoCallScreen} />

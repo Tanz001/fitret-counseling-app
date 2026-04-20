@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../utils/supabase';
 
 const RESOURCE_ITEMS = [
-  { icon: 'headphones', iconType: 'Feather', label: 'Guided exercises', route: null },
+  { icon: 'headphones', iconType: 'Feather', label: 'Guided exercises', route: 'PatientGuidedExercises' },
   { icon: 'book', iconType: 'Feather', label: 'Articles', route: null },
   { icon: 'message-circle', iconType: 'Feather', label: 'Fitret Chat', route: 'Chat' },
 ];
@@ -117,7 +117,11 @@ const PatientProfileScreen = ({ navigation, route }) => {
               <TouchableOpacity
                 key={idx}
                 style={styles.resourceCard}
-                onPress={() => r.route && navigation.navigate(r.route)}
+                onPress={() => {
+                  if (!r.route) return;
+                  if (r.route === 'Chat') navigation.navigate('Chat');
+                  else navigation.getParent()?.navigate(r.route);
+                }}
               >
                 <View style={styles.resourceIconBg}>
                   <CustomIcon name={r.icon} size={24} color={COLORS.primary} iconType={r.iconType} touchable={false} />
@@ -126,6 +130,21 @@ const PatientProfileScreen = ({ navigation, route }) => {
               </TouchableOpacity>
             ))}
           </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Plans</Text>
+          <TouchableOpacity
+            style={styles.optionRow}
+            onPress={() => navigation.getParent()?.navigate('PatientMyPlans')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.optionIconBg}>
+              <CustomIcon name="layers" size={20} color={COLORS.primary} iconType="Feather" touchable={false} />
+            </View>
+            <Text style={styles.optionTitle}>My plans</Text>
+            <CustomIcon name="chevron-right" size={20} color={COLORS.gray400} iconType="Feather" touchable={false} />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.section}>

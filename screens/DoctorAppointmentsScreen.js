@@ -19,8 +19,25 @@ import moment from 'moment';
 
 const DoctorAppointmentsScreen = ({navigation}) => {
   const [filter, setFilter] = useState('Upcoming');
+  const [sessionTypeFilter, setSessionTypeFilter] = useState('all');
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const SESSION_TYPE_OPTIONS = [
+    {label: 'All', value: 'all'},
+    {label: 'General', value: 'general'},
+    {label: 'Individual', value: 'individual'},
+    {label: 'Couple', value: 'couple'},
+    {label: 'Child', value: 'child'},
+    {label: 'Group', value: 'group'},
+  ];
+  const formatSessionType = (type) => {
+    if (!type) return 'General';
+    return type
+      .toString()
+      .split('_')
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
+  };
 
   const fetchAppointments = useCallback(async () => {
     try {
@@ -85,9 +102,13 @@ const DoctorAppointmentsScreen = ({navigation}) => {
   );
 
   const filteredData = appointments.filter(a => {
-    if (filter === 'Upcoming') return a.status === 'pending' || a.status === 'confirmed';
-    if (filter === 'Completed') return a.status === 'completed';
-    return false;
+    const byStatus =
+      filter === 'Upcoming'
+        ? a.status === 'pending' || a.status === 'confirmed'
+        : a.status === 'completed';
+    if (!byStatus) return false;
+    if (sessionTypeFilter === 'all') return true;
+    return (a.session_type || 'general') === sessionTypeFilter;
   });
 
   const renderItem = ({item}) => {
@@ -116,7 +137,7 @@ const DoctorAppointmentsScreen = ({navigation}) => {
               date: dateLabel,
               time: item.appointment_time,
               status: item.status.charAt(0).toUpperCase() + item.status.slice(1),
-              type: 'Video Call' 
+              type: formatSessionType(item.session_type),
             } 
           })
         }>
@@ -192,7 +213,7 @@ const DoctorAppointmentsScreen = ({navigation}) => {
                 iconType="Feather"
                 touchable={false}
               />
-              <Text style={styles.typeText}>Video Call</Text>
+              <Text style={styles.typeText}>{formatSessionType(item.session_type)}</Text>
             </View>
             <TouchableOpacity style={styles.joinBtn}>
               <Text style={styles.joinBtnText}>Join Session</Text>
@@ -243,6 +264,28 @@ const DoctorAppointmentsScreen = ({navigation}) => {
             Completed
           </Text>
         </TouchableOpacity>
+      </View>
+      <View style={styles.sessionTypeFilterWrap}>
+        <FlatList
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          data={SESSION_TYPE_OPTIONS}
+          keyExtractor={(item) => item.value}
+          contentContainerStyle={styles.sessionTypeFilterContent}
+          renderItem={({item}) => {
+            const active = sessionTypeFilter === item.value;
+            return (
+              <TouchableOpacity
+                style={[styles.sessionTypeChip, active && styles.sessionTypeChipActive]}
+                onPress={() => setSessionTypeFilter(item.value)}
+                activeOpacity={0.8}>
+                <Text style={[styles.sessionTypeChipText, active && styles.sessionTypeChipTextActive]}>
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          }}
+        />
       </View>
 
       {loading ? (
@@ -322,6 +365,37 @@ const styles = StyleSheet.create({
   activeTab: {borderBottomColor: COLORS.primary},
   tabText: {fontSize: FONTS.sizes.md, color: COLORS.gray500, fontWeight: '600'},
   activeTabText: {color: COLORS.primary},
+  sessionTypeFilterWrap: {
+    backgroundColor: COLORS.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.gray100,
+    paddingBottom: SPACING.sm,
+  },
+  sessionTypeFilterContent: {
+    paddingHorizontal: SPACING.lg,
+    gap: SPACING.sm,
+  },
+  sessionTypeChip: {
+    borderWidth: 1,
+    borderColor: COLORS.gray200,
+    backgroundColor: COLORS.gray50,
+    borderRadius: RADIUS.full,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  sessionTypeChipActive: {
+    backgroundColor: COLORS.primary + '18',
+    borderColor: COLORS.primary,
+  },
+  sessionTypeChipText: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.gray600,
+    fontWeight: '600',
+  },
+  sessionTypeChipTextActive: {
+    color: COLORS.primary,
+    fontWeight: '700',
+  },
 
   listContainer: {padding: SPACING.lg, paddingBottom: 100},
 

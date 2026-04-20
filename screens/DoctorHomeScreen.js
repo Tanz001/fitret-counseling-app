@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useCallback} from 'react';
 import {
   View,
   Text,
@@ -23,7 +23,7 @@ import { formatEtb } from '../constants/currency';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {supabase} from '../utils/supabase';
 import moment from 'moment';
-import { useFocusEffect } from '@react-navigation/native';
+import {useFocusEffect} from '@react-navigation/native';
 
 const {width} = Dimensions.get('window');
 const CHART_WIDTH = width - SPACING.lg * 2 - SPACING.lg * 2;
@@ -62,73 +62,82 @@ const DoctorHomeScreen = ({navigation}) => {
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [fetchDashboardData]);
 
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       fetchDashboardData();
-    }, [])
+    }, [fetchDashboardData])
   );
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: {user},
+      } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Assigned patient mapping for this therapist
-      const { data: assignments } = await supabase
-        .from('patient_therapists')
-        .select('patient_id')
-        .eq('therapist_id', user.id);
-      const assignedPatientIds = [...new Set((assignments || []).map((a) => a.patient_id).filter(Boolean))];
-
       // 1. Fetch Profile
-      const { data: profile } = await supabase
+      const {data: profile} = await supabase
         .from('users')
         .select('full_name, profile_picture')
         .eq('id', user.id)
         .single();
-      
+
       if (profile) {
         if (profile.full_name) setDoctorName(profile.full_name.split(' ')[0]);
-        if (profile.profile_picture) setAvatar({ uri: profile.profile_picture });
+        if (profile.profile_picture) setAvatar({uri: profile.profile_picture});
       }
 
-      // 2. Fetch Stats & Upcoming
-      const { data: allAppointments, error: aptError } = await supabase
+      // 2. Fetch all therapist appointments for totals
+      const {data: allAppointments, error: aptError} = await supabase
         .from('appointments')
         .select('*')
         .eq('therapist_id', user.id);
 
       if (!aptError && allAppointments) {
-        const scopedAppointments = allAppointments.filter((apt) => assignedPatientIds.includes(apt.patient_id));
-        const totalEarnings = scopedAppointments.reduce((sum, apt) => sum + (apt.fee || 0), 0);
+        const totalEarnings = allAppointments.reduce(
+          (sum, apt) => sum + (Number(apt.fee) || 0),
+          0,
+        );
         setStats({
-          appointments: scopedAppointments.length,
-          earnings: totalEarnings
+          appointments: allAppointments.length,
+          earnings: totalEarnings,
         });
 
-        // Get 2 latest upcoming (pending or confirmed)
-        const upcoming = scopedAppointments
-          .filter(a => a.status === 'pending' || a.status === 'confirmed')
+        // Upcoming = pending/confirmed and not in the past
+        const now = moment();
+        const upcoming = allAppointments
+          .filter(
+            a =>
+              (a.status === 'pending' || a.status === 'confirmed') &&
+              moment(`${a.appointment_date} ${a.appointment_time}`).isSameOrAfter(
+                now,
+              ),
+          )
           .sort((a, b) => {
-            // Sort by combined date and time
             const dateA = new Date(`${a.appointment_date}T${a.appointment_time}`);
             const dateB = new Date(`${b.appointment_date}T${b.appointment_time}`);
             return dateA - dateB;
           })
-          .slice(0, 2);
+          .slice(0, 5);
 
-        // Fetch assigned patients for list + upcoming name mapping
-        if (assignedPatientIds.length > 0) {
-          const { data: patients } = await supabase
+        // 3. Fetch patient details for upcoming cards only
+        const patientIds = [
+          ...new Set(upcoming.map((u) => u.patient_id).filter(Boolean)),
+        ];
+        if (patientIds.length > 0) {
+          const {data: patients} = await supabase
             .from('users')
             .select('id, full_name, profile_picture')
-            .in('id', assignedPatientIds);
-          
+            .in('id', patientIds);
+
           const patientMap = {};
-          if (patients) patients.forEach(p => patientMap[p.id] = p);
+          if (patients)
+            patients.forEach(p => {
+              patientMap[p.id] = p;
+            });
 
           const formattedUpcoming = upcoming.map(u => {
             const p = patientMap[u.patient_id] || {};
@@ -138,7 +147,7 @@ const DoctorHomeScreen = ({navigation}) => {
               patientName: p.full_name || 'Patient',
               patientAvatar: p.profile_picture ? { uri: p.profile_picture } : null,
               displayDate: isToday ? 'Today' : moment(u.appointment_date).format('MMM D'),
-              displayTime: u.appointment_time
+              displayTime: moment(u.appointment_time, 'HH:mm:ss').format('hh:mm A'),
             };
           });
           setUpcomingSessions(formattedUpcoming);
@@ -153,7 +162,7 @@ const DoctorHomeScreen = ({navigation}) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const handleUpdateStatus = async (id, newStatus) => {
     try {
@@ -180,9 +189,11 @@ const DoctorHomeScreen = ({navigation}) => {
             source={avatar}
             style={styles.avatar}
           />
-          <View>
+          <View style={styles.greetingTextWrap}>
             <Text style={styles.greeting}>Good Morning,</Text>
-            <Text style={styles.drName}>Dr. {doctorName}</Text>
+            <Text style={styles.drName} numberOfLines={1} ellipsizeMode="tail">
+              Dr. {doctorName}
+            </Text>
           </View>
         </View>
         <TouchableOpacity style={styles.notifBtn}>
@@ -336,7 +347,7 @@ const DoctorHomeScreen = ({navigation}) => {
         </ScrollView>
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Up Next Today</Text>
+          <Text style={styles.sectionTitle}>Upcoming Appointments</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Appointments')}>
             <Text style={styles.seeAll}>View Schedule</Text>
           </TouchableOpacity>
@@ -475,7 +486,8 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.gray100,
     ...SHADOWS.sm,
   },
-  greetingHeader: {flexDirection: 'row', alignItems: 'center'},
+  greetingHeader: {flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0, marginRight: SPACING.md},
+  greetingTextWrap: {flex: 1, minWidth: 0},
   avatar: {
     width: 50,
     height: 50,
@@ -489,7 +501,7 @@ const styles = StyleSheet.create({
     color: COLORS.gray500,
     fontWeight: '500',
   },
-  drName: {fontSize: FONTS.sizes.xl, fontWeight: '700', color: COLORS.gray900},
+  drName: {fontSize: FONTS.sizes.xl, fontWeight: '700', color: COLORS.gray900, flexShrink: 1},
   notifBtn: {
     width: 44,
     height: 44,

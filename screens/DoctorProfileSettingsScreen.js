@@ -250,7 +250,7 @@ const DoctorProfileSettingsScreen = ({navigation}) => {
             'Manage Schedule / Hours',
             'DoctorSchedule',
           )}
-          {renderOptionRow('folder', 'Review Client Documents')}
+          {renderOptionRow('folder', 'Review Client Documents', 'TherapistTherapyDocuments')}
           {renderOptionRow(
             'file-text',
             'Clinical Notes & Templates',

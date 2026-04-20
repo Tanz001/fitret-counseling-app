@@ -7,8 +7,10 @@ import { supabase } from '../utils/supabase';
 import { COLORS, FONTS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
 
 const MOCK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const SESSION_TYPES = ['general', 'individual', 'couple', 'child', 'group'];
 
 const BookingCalendarScreen = ({ navigation, route }) => {
+  const selectedPlan = route?.params?.selectedPlan || null;
   const therapist = route?.params?.therapist || {
     id: null,
     name: "Dr. Aisha Rahman",
@@ -21,6 +23,7 @@ const BookingCalendarScreen = ({ navigation, route }) => {
   const [availableDates, setAvailableDates] = useState([]);
   const [selectedDateObj, setSelectedDateObj] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
+  const [selectedSessionType, setSelectedSessionType] = useState('general');
   const [availabilityMessage, setAvailabilityMessage] = useState('');
   const [isAssigned, setIsAssigned] = useState(true);
 
@@ -150,7 +153,7 @@ const BookingCalendarScreen = ({ navigation, route }) => {
   };
 
   const handleConfirmSlot = () => {
-    if (!isAssigned || !selectedDateObj || !selectedTime) {
+    if (!isAssigned || !selectedDateObj || !selectedTime || !selectedSessionType) {
       return;
     }
     timeSheetRef.current?.close();
@@ -165,6 +168,8 @@ const BookingCalendarScreen = ({ navigation, route }) => {
       time: selectedTime,
       dbDate: dbFormattedDate,
       dbTime: startTimeStr,
+      sessionType: selectedSessionType,
+      selectedPlan,
       amount: therapist.fee || 120,
     });
   };
@@ -308,12 +313,33 @@ const BookingCalendarScreen = ({ navigation, route }) => {
             <Text style={styles.noSlotsText}>No specific slots available for this day.</Text>
           )}
         </ScrollView>
+        <View style={styles.sessionTypeSection}>
+          <Text style={styles.sessionTypeTitle}>Select session type</Text>
+          <View style={styles.sessionTypeGrid}>
+            {SESSION_TYPES.map((type) => {
+              const isSelected = selectedSessionType === type;
+              const label = type.charAt(0).toUpperCase() + type.slice(1);
+              return (
+                <TouchableOpacity
+                  key={type}
+                  style={[styles.sessionTypeChip, isSelected && styles.sessionTypeChipSelected]}
+                  onPress={() => setSelectedSessionType(type)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.sessionTypeChipText, isSelected && styles.sessionTypeChipTextSelected]}>
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
 
         <View style={styles.sheetFooter}>
           <TouchableOpacity 
-            style={[styles.primaryBtn, !selectedTime && styles.primaryBtnDisabled]}
+            style={[styles.primaryBtn, (!selectedTime || !selectedSessionType) && styles.primaryBtnDisabled]}
             onPress={handleConfirmSlot}
-            disabled={!selectedTime}
+            disabled={!selectedTime || !selectedSessionType}
           >
             <Text style={styles.primaryBtnText}>Confirm Appointment</Text>
           </TouchableOpacity>
@@ -485,6 +511,23 @@ const styles = StyleSheet.create({
   timeSlotText: { fontSize: FONTS.sizes.sm, fontWeight: '700', color: COLORS.gray900 },
   timeSlotTextSelected: { color: COLORS.white },
   noSlotsText: { color: COLORS.gray500, fontSize: FONTS.sizes.md, textAlign: 'center', width: '100%', marginTop: 20 },
+  sessionTypeSection: { paddingHorizontal: SPACING.xl, paddingBottom: SPACING.md },
+  sessionTypeTitle: { fontSize: FONTS.sizes.sm, fontWeight: '700', color: COLORS.gray700, marginBottom: SPACING.sm },
+  sessionTypeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
+  sessionTypeChip: {
+    borderWidth: 1,
+    borderColor: COLORS.gray200,
+    backgroundColor: COLORS.white,
+    borderRadius: RADIUS.full,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  sessionTypeChipSelected: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primary + '18',
+  },
+  sessionTypeChipText: { fontSize: FONTS.sizes.sm, color: COLORS.gray600, fontWeight: '600' },
+  sessionTypeChipTextSelected: { color: COLORS.primary, fontWeight: '700' },
   
   sheetFooter: { padding: SPACING.xl, borderTopWidth: 1, borderTopColor: COLORS.gray100, backgroundColor: COLORS.white },
   primaryBtn: { backgroundColor: COLORS.primary, paddingVertical: 16, borderRadius: RADIUS.lg, alignItems: 'center', ...SHADOWS.sm },

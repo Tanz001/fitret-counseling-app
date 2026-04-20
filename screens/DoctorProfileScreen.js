@@ -180,7 +180,12 @@ const DoctorProfileScreen = ({navigation, route}) => {
 
           <TouchableOpacity
             style={styles.bookBtn}
-            onPress={() => navigation.navigate('BookingCalendar', {therapist})}
+            onPress={() =>
+              navigation.navigate('BookingCalendar', {
+                therapist,
+                selectedPlan: route?.params?.selectedPlan || null,
+              })
+            }
             activeOpacity={0.9}>
             <Text style={styles.bookBtnText}>Book Appointment</Text>
             <CustomIcon

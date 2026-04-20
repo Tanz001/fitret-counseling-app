@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../utils/supabase';
 import { useFocusEffect } from '@react-navigation/native';
 
-const PatientHomeScreen = ({ navigation }) => {
+const PatientHomeScreen = ({ navigation, route }) => {
   const filterSheetRef = useRef();
   const [userName, setUserName] = useState('There');
   const [therapists, setTherapists] = useState([]);
@@ -155,7 +155,12 @@ const PatientHomeScreen = ({ navigation }) => {
     <TouchableOpacity
       activeOpacity={0.9}
       style={styles.card}
-      onPress={() => navigation.navigate('DoctorProfile', { therapist: item })}
+      onPress={() =>
+        navigation.navigate('DoctorProfile', {
+          therapist: item,
+          selectedPlan: route?.params?.selectedPlan || null,
+        })
+      }
     >
       <Image source={item.image} style={styles.avatar} />
       <View style={styles.cardContent}>

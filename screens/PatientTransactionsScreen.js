@@ -51,11 +51,15 @@ const PatientTransactionsScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+        <TouchableOpacity style={styles.headerSide} onPress={() => navigation.goBack()}>
           <CustomIcon name="chevron-back" size={24} color={COLORS.gray900} iconType="Ionicons" touchable={false} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Transactions</Text>
-        <View style={styles.backBtn} />
+        <View style={styles.headerTitleWrap}>
+          <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+            Transactions
+          </Text>
+        </View>
+        <View style={styles.headerSide} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -111,15 +115,34 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
+    paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.md,
     backgroundColor: COLORS.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.gray100,
   },
-  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: FONTS.sizes.lg, fontWeight: '700', color: COLORS.gray900 },
+  headerSide: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.gray50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitleWrap: {
+    flex: 1,
+    minWidth: 0,
+    paddingHorizontal: SPACING.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: FONTS.sizes.lg,
+    fontWeight: '700',
+    color: COLORS.gray900,
+    textAlign: 'center',
+    width: '100%',
+  },
   scrollContent: { padding: SPACING.lg },
   
   summaryCard: {

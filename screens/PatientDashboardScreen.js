@@ -243,7 +243,11 @@ const PatientDashboardScreen = ({navigation}) => {
               <Text style={styles.toolLabel}>Worksheets</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.toolCard}>
+            <TouchableOpacity
+              style={styles.toolCard}
+              activeOpacity={0.85}
+              onPress={() => navigation.getParent()?.navigate('PatientGuidedExercises')}
+            >
               <View style={[styles.toolIconBg, { backgroundColor: COLORS.accent }]}>
                 <CustomIcon name="headphones" size={24} color={COLORS.primary} iconType="Feather" touchable={false} />
               </View>
