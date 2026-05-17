@@ -30,6 +30,53 @@ const { width, height } = Dimensions.get('window');
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD = 6;
 
+const digitsOnly = (value) => (value || '').replace(/\D/g, '');
+
+const isValidEmail = (value) => EMAIL_REGEX.test((value || '').trim());
+
+const isValidPhone = (value) => {
+  const digits = digitsOnly(value);
+  return digits.length >= 8 && digits.length <= 15;
+};
+
+const resolveLoginEmail = async (identifier) => {
+  const trimmed = identifier.trim();
+  if (isValidEmail(trimmed)) {
+    return trimmed;
+  }
+
+  if (!isValidPhone(trimmed)) {
+    throw new Error('Enter a valid email address or phone number.');
+  }
+
+  const { data: emailFromRpc, error: rpcError } = await supabase.rpc('get_email_by_phone', {
+    phone_input: trimmed,
+  });
+
+  if (!rpcError && emailFromRpc) {
+    return emailFromRpc;
+  }
+
+  const digits = digitsOnly(trimmed);
+  const phoneVariants = [...new Set([trimmed, digits, `+${digits}`].filter(Boolean))];
+
+  for (const phoneValue of phoneVariants) {
+    const { data, error } = await supabase
+      .from('users')
+      .select('email')
+      .eq('phone', phoneValue)
+      .maybeSingle();
+
+    if (!error && data?.email) {
+      return data.email;
+    }
+  }
+
+  throw new Error(
+    'No account found for this phone number. Use your email, or ensure your phone is saved on your profile.',
+  );
+};
+
 const AuthScreens = ({ navigation, route }) => {
   const authRole = route.params?.authRole;
   const isRoleLocked =
@@ -111,11 +158,11 @@ const AuthScreens = ({ navigation, route }) => {
 
   const validateLogin = () => {
     if (!email.trim()) {
-      Alert.alert('Required', 'Please enter your email.');
+      Alert.alert('Required', 'Please enter your email or phone number.');
       return false;
     }
-    if (!EMAIL_REGEX.test(email.trim())) {
-      Alert.alert('Invalid email', 'Please enter a valid email address.');
+    if (!isValidEmail(email) && !isValidPhone(email)) {
+      Alert.alert('Invalid', 'Please enter a valid email address or phone number.');
       return false;
     }
     if (!password) {
@@ -135,8 +182,10 @@ const AuthScreens = ({ navigation, route }) => {
     setLoading(true);
     try {
       if (isLogin) {
+        const loginEmail = await resolveLoginEmail(email);
+
         const { data, error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
+          email: loginEmail,
           password,
         });
 
@@ -153,16 +202,38 @@ const AuthScreens = ({ navigation, route }) => {
           .eq('id', data.user.id)
           .single();
 
-        let resolvedRole = role || 'patient';
         if (userError) {
           console.log(
             '%c [API Error] Fetch User Failed: ',
             `color: ${COLORS.error}; font-weight: bold;`,
             userError,
           );
-        } else if (userData?.role) {
-          resolvedRole = userData.role;
         }
+
+        const accountRole = userData?.role;
+
+        if (isRoleLocked) {
+          if (!accountRole) {
+            await supabase.auth.signOut();
+            Alert.alert(
+              'Login failed',
+              'Could not verify your account type. Please try again.',
+            );
+            return;
+          }
+          if (accountRole !== authRole) {
+            await supabase.auth.signOut();
+            const expectedLabel = authRole === 'therapist' ? 'therapist' : 'patient';
+            const actualLabel = accountRole === 'therapist' ? 'therapist' : 'patient';
+            Alert.alert(
+              'Wrong account type',
+              `This login is for ${expectedLabel} accounts only. The credentials you entered belong to a ${actualLabel} account. Please use the ${actualLabel} sign-in option instead.`,
+            );
+            return;
+          }
+        }
+
+        const resolvedRole = accountRole || role || 'patient';
 
         // Cache profile locally for splash/profile screens
         try {
@@ -320,15 +391,15 @@ const AuthScreens = ({ navigation, route }) => {
             <View style={styles.leafDecorBL} />
             <View style={styles.leafDecorBR} />
 
-            {/* Email */}
-            <Text style={styles.clientLabel1}>Email</Text>
+            {/* Email or phone */}
+            <Text style={styles.clientLabel1}>Email or phone</Text>
             <View style={styles.clientInputWrap}>
-              <CustomIcon iconType="Feather" name="mail" size={18} color="#6f9e8a" style={styles.inputIcon} />
+              <CustomIcon iconType="Feather" name="user" size={18} color="#6f9e8a" style={styles.inputIcon} />
               <TextInput
                 style={styles.clientInput}
-                placeholder="Enter your email"
+                placeholder="Email or phone number"
                 placeholderTextColor="#99b8ad"
-                keyboardType="email-address"
+                keyboardType="default"
                 autoCapitalize="none"
                 value={email}
                 onChangeText={setEmail}
@@ -624,14 +695,20 @@ const AuthScreens = ({ navigation, route }) => {
               </>
             )}
 
-            <Text style={styles.label}>Email</Text>
+            <Text style={styles.label}>{isLogin ? 'Email or phone' : 'Email'}</Text>
             <View style={[styles.inputWrap, isLogin && styles.loginInputWrap]}>
-              <CustomIcon iconType="Feather" name="mail" size={18} color={COLORS.gray400} style={styles.inputIcon} />
+              <CustomIcon
+                iconType="Feather"
+                name={isLogin ? 'user' : 'mail'}
+                size={18}
+                color={COLORS.gray400}
+                style={styles.inputIcon}
+              />
               <TextInput
                 style={styles.input}
-                placeholder="your@email.com"
+                placeholder={isLogin ? 'Email or phone number' : 'your@email.com'}
                 placeholderTextColor={COLORS.gray400}
-                keyboardType="email-address"
+                keyboardType={isLogin ? 'default' : 'email-address'}
                 autoCapitalize="none"
                 value={email}
                 onChangeText={setEmail}
