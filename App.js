@@ -27,6 +27,9 @@ import PatientWorksheetsScreen from "./screens/PatientWorksheetsScreen";
 import PatientPlansScreen from "./screens/PatientPlansScreen";
 import PatientMyPlansScreen from "./screens/PatientMyPlansScreen";
 import PatientGuidedExercisesScreen from "./screens/PatientGuidedExercisesScreen";
+import PatientResourceDetailScreen from "./screens/PatientResourceDetailScreen";
+import PatientFormsScreen from "./screens/PatientFormsScreen";
+import PatientActivitiesScreen from "./screens/PatientActivitiesScreen";
 
 // Doctor flow
 import DoctorTabNavigator from "./screens/DoctorTabNavigator";
@@ -35,6 +38,9 @@ import DoctorSetupScreen from "./screens/DoctorSetupScreen";
 import DoctorWalletScreen from "./screens/DoctorWalletScreen";
 import DoctorScheduleScreen from "./screens/DoctorScheduleScreen";
 import TherapistTherapyDocumentsScreen from "./screens/TherapistTherapyDocumentsScreen";
+import TherapistResourcesScreen from "./screens/TherapistResourcesScreen";
+import TherapistFormsScreen from "./screens/TherapistFormsScreen";
+import TherapistResourceDetailScreen from "./screens/TherapistResourceDetailScreen";
 
 // Shared/Secondary Flow
 import VideoCallScreen from "./screens/VideoCallScreen";
@@ -96,6 +102,9 @@ export default function App() {
           <Stack.Screen name="PatientPlans" component={PatientPlansScreen} />
           <Stack.Screen name="PatientMyPlans" component={PatientMyPlansScreen} />
           <Stack.Screen name="PatientGuidedExercises" component={PatientGuidedExercisesScreen} />
+          <Stack.Screen name="PatientResourceDetail" component={PatientResourceDetailScreen} />
+          <Stack.Screen name="PatientForms" component={PatientFormsScreen} />
+          <Stack.Screen name="PatientActivities" component={PatientActivitiesScreen} />
           <Stack.Screen name="DoctorProfile" component={DoctorProfileScreen} />
           <Stack.Screen name="Reviews" component={ReviewsScreen} />
           <Stack.Screen name="AppointmentDetail" component={AppointmentDetailScreen} />
@@ -112,6 +121,9 @@ export default function App() {
           <Stack.Screen name="DoctorAppointmentDetail" component={DoctorAppointmentDetailScreen} />
           <Stack.Screen name="DoctorWallet" component={DoctorWalletScreen} />
           <Stack.Screen name="TherapistTherapyDocuments" component={TherapistTherapyDocumentsScreen} />
+          <Stack.Screen name="TherapistResources" component={TherapistResourcesScreen} />
+          <Stack.Screen name="TherapistForms" component={TherapistFormsScreen} />
+          <Stack.Screen name="TherapistResourceDetail" component={TherapistResourceDetailScreen} />
 
           {/* Shared / Secondary Stack */}
           <Stack.Screen name="VideoCall" component={VideoCallScreen} />

@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image, StatusBar, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, StatusBar, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import CustomIcon from '../components/CustomIcon';
 import { COLORS, FONTS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
 import { formatEtb } from '../constants/currency';
 import { supabase } from '../utils/supabase';
 import moment from 'moment';
+import { formatDisplayTime, formatTimeWithLocalLabel } from '../constants/formatters';
 
 const AppointmentDetailScreen = ({ navigation, route }) => {
   const initialAppointment = route?.params?.appointment || {};
@@ -37,7 +39,8 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
         doctor: therapist.full_name || 'Therapist',
         title: therapist.specialization || 'Mental Health Professional',
         date: moment(data.appointment_date).format('MMM D, YYYY'),
-        time: data.appointment_time,
+        time: formatDisplayTime(data.appointment_time),
+        timeWithLocal: formatTimeWithLocalLabel(data.appointment_time),
         image: therapist.profile_picture ? { uri: therapist.profile_picture } : require('../assets/person.webp'),
         amount: formatEtb(data.fee),
         paymentMethod: data.payment_method?.toUpperCase() || 'Not specified',
@@ -69,7 +72,7 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
   const sc = getStatusColor(appointment.status);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.offWhite} />
       
       {/* Header */}
@@ -131,7 +134,7 @@ const AppointmentDetailScreen = ({ navigation, route }) => {
               </View>
               <View>
                 <Text style={styles.specLabel}>Time</Text>
-                <Text style={styles.specValue}>{appointment.time}</Text>
+                <Text style={styles.specValue}>{appointment.timeWithLocal || appointment.time}</Text>
               </View>
             </View>
           </View>

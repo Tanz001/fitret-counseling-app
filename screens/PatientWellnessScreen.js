@@ -3,10 +3,10 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import CustomIcon from '../components/CustomIcon';
 import { COLORS, FONTS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
 
@@ -30,10 +30,34 @@ const WELLNESS_TOOLS = [
   {
     id: 'worksheets',
     title: 'Worksheets',
-    description: 'Complete therapist-assigned exercises and worksheets (Offline supported).',
+    description: 'Complete worksheets assigned to you by your care team.',
     icon: 'file-text',
     iconType: 'Feather',
     route: 'PatientWorksheets',
+  },
+  {
+    id: 'activities',
+    title: 'Journals & Exercises',
+    description: 'Assigned journal prompts and exercises to complete and submit.',
+    icon: 'clipboard',
+    iconType: 'Feather',
+    route: 'PatientActivities',
+  },
+  {
+    id: 'audio',
+    title: 'Guided Audio',
+    description: 'Listen to guided audio sessions assigned to you.',
+    icon: 'headphones',
+    iconType: 'Feather',
+    route: 'PatientGuidedExercises',
+  },
+  {
+    id: 'forms',
+    title: 'Forms',
+    description: 'View and open forms assigned to you (PDF, DOC).',
+    icon: 'file',
+    iconType: 'Feather',
+    route: 'PatientForms',
   },
 ];
 
@@ -52,7 +76,7 @@ const PatientWellnessScreen = ({ navigation }) => {
           <TouchableOpacity
             key={tool.id}
             style={styles.card}
-            onPress={() => tool.route && navigation.navigate(tool.route)}
+            onPress={() => tool.route && navigation.getParent()?.navigate(tool.route)}
             activeOpacity={0.8}
           >
             <View style={[styles.iconContainer, { backgroundColor: COLORS.accent }]}>
@@ -81,7 +105,7 @@ const PatientWellnessScreen = ({ navigation }) => {
         <View style={styles.infoBox}>
           <CustomIcon name="info" size={20} color={COLORS.primary} iconType="Feather" touchable={false} />
           <Text style={styles.infoText}>
-            Worksheets work offline and will automatically sync when you reconnect.
+            Materials assigned to you on the web portal appear here. Complete worksheets and activities, then submit your responses.
           </Text>
         </View>
       </ScrollView>

@@ -25,7 +25,7 @@ const AuthWelcomeScreen = ({ navigation }) => {
         <Image
           source={require('../assets/hero.jpeg')}
           style={styles.image}
-          resizeMode="cover"
+          resizeMode="contain"
         />
 
         {/* Dark overlay for readability */}
@@ -55,27 +55,9 @@ const AuthWelcomeScreen = ({ navigation }) => {
         <Text style={styles.title}>Fitret</Text>
         <Text style={styles.subtitle}>Choose how you would like to continue</Text>
 
-        {/* Therapist */}
+        {/* Client primary */}
         <TouchableOpacity
-          style={styles.card}
-          activeOpacity={0.9}
-          onPress={() => navigation.navigate('AuthScreens', { authRole: 'therapist' })}
-        >
-          <View style={styles.iconWrap}>
-            <CustomIcon name="briefcase" size={22} color="#4e8f7a" iconType="Feather" />
-          </View>
-
-          <View style={styles.textWrap}>
-            <Text style={styles.cardTitle}>Therapist</Text>
-            <Text style={styles.cardDesc}>Provide care & consultations</Text>
-          </View>
-
-          <CustomIcon name="chevron-right" size={20} color="#aaa" iconType="Feather" />
-        </TouchableOpacity>
-
-        {/* Client */}
-        <TouchableOpacity
-          style={styles.card}
+          style={[styles.card, styles.primaryCard]}
           activeOpacity={0.9}
           onPress={() => navigation.navigate('AuthScreens', { authRole: 'patient' })}
         >
@@ -89,6 +71,15 @@ const AuthWelcomeScreen = ({ navigation }) => {
           </View>
 
           <CustomIcon name="chevron-right" size={20} color="#aaa" iconType="Feather" />
+        </TouchableOpacity>
+
+        {/* Therapist secondary */}
+        <TouchableOpacity
+          style={styles.therapistSecondary}
+          activeOpacity={0.8}
+          onPress={() => navigation.navigate('AuthScreens', { authRole: 'therapist' })}
+        >
+          <Text style={styles.therapistSecondaryText}>Click here if therapist</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -178,6 +169,20 @@ const styles = StyleSheet.create({
     // shadowRadius: 10,
     // shadowOffset: { width: 0, height: 4 },
     // elevation: 3,
+  },
+  primaryCard: {
+    marginBottom: 10,
+  },
+  therapistSecondary: {
+    alignSelf: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  therapistSecondaryText: {
+    fontSize: 13,
+    color: '#6f9e8a',
+    textDecorationLine: 'underline',
+    fontWeight: '600',
   },
 
   iconWrap: {

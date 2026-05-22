@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ScrollView,
   Image,
@@ -12,6 +11,7 @@ import {
   Platform,
   Modal,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import RBSheet from 'react-native-raw-bottom-sheet';
 import CustomIcon from '../components/CustomIcon';
 import { COLORS, FONTS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
@@ -19,6 +19,7 @@ import { pickAndUploadImage } from '../utils/imageUpload';
 import { supabase } from '../utils/supabase';
 import Toast from 'react-native-simple-toast';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { formatEthiopianPhone } from '../constants/formatters';
 
 const defaultPatient = {
   name: 'Jane Doe',
@@ -41,7 +42,7 @@ const PatientEditProfileScreen = ({ navigation, route }) => {
 
   const [name, setName] = useState(initial.name);
   const [email, setEmail] = useState(initial.email);
-  const [phone, setPhone] = useState(initial.phone || '');
+  const [phone, setPhone] = useState(formatEthiopianPhone(initial.phone || ''));
   const [avatar, setAvatar] = useState(() => normalizeAvatar(initial.avatar) ?? defaultPatient.avatar);
   const [successModalVisible, setSuccessModalVisible] = useState(false);
 
@@ -105,7 +106,7 @@ const PatientEditProfileScreen = ({ navigation, route }) => {
       const updated = {
         full_name: name.trim() || initial.name,
         email: email.trim() || initial.email,
-        phone: phone.trim(),
+        phone: formatEthiopianPhone(phone.trim()),
         profile_picture: typeof avatar === 'string' ? avatar : null,
       };
 
@@ -189,8 +190,8 @@ const PatientEditProfileScreen = ({ navigation, route }) => {
             <TextInput
               style={styles.input}
               value={phone}
-              onChangeText={setPhone}
-              placeholder="+1 234 567 8900"
+              onChangeText={(text) => setPhone(formatEthiopianPhone(text))}
+              placeholder="+2519XXXXXXXX"
               placeholderTextColor={COLORS.gray400}
               keyboardType="phone-pad"
             />

@@ -329,7 +329,7 @@ class book_appointment extends React.Component {
 
               <Text style={{ color: '#0EAFF6', fontSize: 13, fontWeight: '600' }}>Urgent Care</Text>
               <Text style={{ color: 'gray', fontSize: 13, fontWeight: '400' }}>8 years experience</Text>
-              <Text style={{ color: 'black', fontSize: 18, fontWeight: 'bold', marginTop: 5 }}>$50</Text>
+              <Text style={{ color: 'black', fontSize: 18, fontWeight: 'bold', marginTop: 5 }}>ETB 50</Text>
 
             </View>
           </TouchableOpacity>

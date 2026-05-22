@@ -10,7 +10,6 @@ import {
   TouchableOpacity,
   Image,
   TextInput,
-  ImageBackground,
   Dimensions,
   BackHandler,
   Keyboard,
@@ -64,11 +63,12 @@ class Login_Screen extends React.Component {
       <View style={{flex: 1, backgroundColor: '#f4f6fc'}}>
         <StatusBar backgroundColor="#370000" barStyle="light-content" />
 
-        <ImageBackground
-          source={require('../assets/hero.jpeg')}
-          style={styles.headerHero}
-          resizeMode="cover">
-          <View style={styles.heroOverlay} />
+        <View style={styles.headerHero}>
+          <Image
+            source={require('../assets/hero.jpeg')}
+            style={styles.heroImage}
+            resizeMode="contain"
+          />
           <CustomIcon
             iconType="AntDesign"
             name="left"
@@ -88,7 +88,7 @@ class Login_Screen extends React.Component {
           <Text allowFontScaling={false} style={styles.headerSubtitle}>
             Please sign in to continue
           </Text>
-        </ImageBackground>
+        </View>
 
         <KeyboardAvoidingView behavior="padding" style={{flex: 1}}>
           <ScrollView contentContainerStyle={{paddingBottom: 40}}>
@@ -191,6 +191,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 40,
+    backgroundColor: '#f4f6fc',
     shadowColor: '#370000',
     shadowOffset: {width: 0, height: 10},
     shadowOpacity: 0.3,
@@ -198,13 +199,8 @@ const styles = StyleSheet.create({
     elevation: 10,
     overflow: 'hidden',
   },
-  heroOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+  heroImage: {
+    ...StyleSheet.absoluteFillObject,
   },
   logo: {
     width: 100,

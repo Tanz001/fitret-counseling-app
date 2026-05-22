@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import RBSheet from 'react-native-raw-bottom-sheet';
 import { useFocusEffect } from '@react-navigation/native';
 import CustomIcon from '../components/CustomIcon';
@@ -70,13 +71,22 @@ const PatientProfileScreen = ({ navigation, route }) => {
       // ignore
     }
     await AsyncStorage.clear();
-    navigation.reset({ index: 0, routes: [{ name: 'AuthWelcome' }] });
+    const rootNav = navigation.getParent();
+    const resetToClientLogin = {
+      index: 0,
+      routes: [{ name: 'AuthScreens', params: { authRole: 'patient', showLogin: true } }],
+    };
+    if (rootNav) {
+      rootNav.reset(resetToClientLogin);
+    } else {
+      navigation.reset(resetToClientLogin);
+    }
   };
 
   const renderOptionRow = (icon, iconType, title, route) => (
     <TouchableOpacity
       style={styles.optionRow}
-      onPress={() => route && navigation.navigate(route)}
+      onPress={() => route && (navigation.getParent()?.navigate(route) ?? navigation.navigate(route))}
       activeOpacity={0.8}
     >
       <View style={styles.optionIconBg}>
@@ -152,7 +162,7 @@ const PatientProfileScreen = ({ navigation, route }) => {
           {renderOptionRow('bell', 'Feather', 'Notifications', 'Notifications')}
           {renderOptionRow('lock', 'Feather', 'Privacy & Security')}
           {renderOptionRow('credit-card', 'Feather', 'Payment Methods')}
-          {renderOptionRow('file-text', 'Feather', 'Intake Forms')}
+          {renderOptionRow('file-text', 'Feather', 'Forms', 'PatientForms')}
           {renderOptionRow('help-circle', 'Feather', 'Help Center')}
           {renderOptionRow('info', 'Feather', 'About Fitret')}
         </View>

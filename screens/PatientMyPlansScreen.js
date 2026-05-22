@@ -3,18 +3,19 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
   RefreshControl,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import CustomIcon from '../components/CustomIcon';
 import { COLORS, FONTS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
 import { formatEtb } from '../constants/currency';
 import { supabase } from '../utils/supabase';
+import { formatDisplayDate } from '../constants/formatters';
 
 const PatientMyPlansScreen = ({ navigation }) => {
   const [myPlans, setMyPlans] = useState([]);
@@ -157,7 +158,7 @@ const PatientMyPlansScreen = ({ navigation }) => {
             <CustomIcon name="play-circle" size={16} color={COLORS.gray500} iconType="Feather" touchable={false} />
             <Text style={styles.detailLabel}>Started</Text>
             <Text style={styles.detailValue} numberOfLines={1}>
-              {item.start_date || '—'}
+              {formatDisplayDate(item.start_date)}
             </Text>
           </View>
           <View style={styles.detailDivider} />
@@ -165,7 +166,7 @@ const PatientMyPlansScreen = ({ navigation }) => {
             <CustomIcon name="clock" size={16} color={COLORS.gray500} iconType="Feather" touchable={false} />
             <Text style={styles.detailLabel}>Valid until</Text>
             <Text style={styles.detailValue} numberOfLines={1}>
-              {item.end_date || 'No end date'}
+              {item.end_date ? formatDisplayDate(item.end_date) : 'No end date'}
             </Text>
           </View>
           {item.plan?.price != null ? (

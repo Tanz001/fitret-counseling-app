@@ -1,6 +1,7 @@
 
 import React, { useRef, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, TextInput, StatusBar, Alert, Platform, ActivityIndicator, Image, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, StatusBar, Alert, Platform, ActivityIndicator, Image, Modal } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import CustomIcon from '../components/CustomIcon';
 import RBSheet from "react-native-raw-bottom-sheet";
@@ -9,6 +10,7 @@ import { supabase } from '../utils/supabase';
 import Toast from 'react-native-simple-toast';
 import Video from 'react-native-video';
 import { Linking } from 'react-native';
+import { formatTimeWithLocalLabel } from '../constants/formatters';
 
 const DoctorAppointmentDetailScreen = ({ navigation, route }) => {
   const appointment = route?.params?.appointment || {};
@@ -349,7 +351,9 @@ const DoctorAppointmentDetailScreen = ({ navigation, route }) => {
              </View>
              <View style={styles.infoItem}>
                 <CustomIcon name="clock" size={18} color={COLORS.gray500} iconType="Feather" touchable={false} style={styles.infoIcon} />
-                <Text style={styles.infoText}>{appointment.time}</Text>
+                <Text style={styles.infoText}>
+                  {formatTimeWithLocalLabel(appointment.time)}
+                </Text>
              </View>
              <View style={styles.infoItem}>
                 <CustomIcon name="video" size={18} color={COLORS.gray500} iconType="Feather" touchable={false} style={styles.infoIcon} />

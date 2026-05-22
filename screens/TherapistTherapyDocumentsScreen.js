@@ -8,7 +8,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
@@ -16,6 +15,7 @@ import {
   Linking,
   RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import CustomIcon from '../components/CustomIcon';
 import { COLORS, FONTS, SPACING, RADIUS, SHADOWS } from '../constants/theme';

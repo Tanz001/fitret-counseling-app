@@ -136,3 +136,14 @@ project.ext.vectoricons = [
 apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")
 
 apply from: file("../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle"); applyNativeModulesAppBuildGradle(project)
+
+// AGP lint vital model tasks read assets under build/intermediates/ReactNativeVectorIcons but
+// fonts.gradle only wires lintVitalAnalyze* — explicit dependency avoids Gradle 8+ validation failure.
+afterEvaluate {
+    def fontCopyTask = tasks.findByName("copyReactNativeVectorIconFonts")
+    if (fontCopyTask != null) {
+        tasks.matching { it.name.endsWith("LintVitalReportModel") }.configureEach {
+            it.dependsOn(fontCopyTask)
+        }
+    }
+}

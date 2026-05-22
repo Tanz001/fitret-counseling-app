@@ -3,16 +3,16 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ScrollView,
   Image,
+  ImageBackground,
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import {useFocusEffect} from '@react-navigation/native';
 import CustomIcon from '../components/CustomIcon';
-import LinearGradient from 'react-native-linear-gradient';
 import moment from 'moment';
 import {COLORS, FONTS, SPACING, RADIUS, SHADOWS} from '../constants/theme';
 import {supabase} from '../utils/supabase';
@@ -183,15 +183,23 @@ const PatientDashboardScreen = ({navigation}) => {
   };
 
   const nextSessionText = getNextSessionText();
+  const nextSession = pendingSessions.length > 0 ? pendingSessions[0] : null;
+  const isTodaySession = !!nextSession && moment(nextSession.rawDate).isSame(moment(), 'day');
+  const isNearSession =
+    !!nextSession &&
+    isTodaySession &&
+    moment(`${nextSession.rawDate}T${nextSession.time || '00:00:00'}`).diff(moment(), 'minutes') <= 60 &&
+    moment(`${nextSession.rawDate}T${nextSession.time || '00:00:00'}`).diff(moment(), 'minutes') >= 0;
+  const sessionStatusLabel = isNearSession ? 'Starting soon' : isTodaySession ? 'Today' : 'Future';
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        <LinearGradient
-          colors={[COLORS.primary, COLORS.primaryDark]}
+        <ImageBackground
+          source={require('../assets/dashboard1.webp')}
           style={styles.header}
-          start={{x: 0, y: 0}}
-          end={{x: 1, y: 1}}>
+          resizeMode="cover">
+          <View style={styles.headerOverlay} />
           <View style={styles.headerRow}>
             <View style={{flex: 1}}>
               <Text style={styles.dateText}>{moment().format('dddd, MMMM Do YYYY')}</Text>
@@ -208,7 +216,7 @@ const PatientDashboardScreen = ({navigation}) => {
               />
             </TouchableOpacity>
           </View>
-        </LinearGradient>
+        </ImageBackground>
 
         {/* Next Session Countdown */}
         {loadingSessions ? (
@@ -218,19 +226,46 @@ const PatientDashboardScreen = ({navigation}) => {
             <View style={styles.countdownIconBg}>
               <CustomIcon name="calendar" size={24} color={COLORS.primary} iconType="Ionicons" touchable={false} />
             </View>
-            <Text style={styles.countdownText}>{nextSessionText}</Text>
+            <View style={{flex: 1}}>
+              <View style={[styles.sessionStatusBadge, isTodaySession ? styles.sessionStatusToday : styles.sessionStatusFuture, isNearSession && styles.sessionStatusPulse]}>
+                <Text style={[styles.sessionStatusText, isTodaySession ? styles.sessionStatusTodayText : styles.sessionStatusFutureText]}>
+                  {sessionStatusLabel}
+                </Text>
+              </View>
+              <Text style={styles.countdownText}>{nextSessionText}</Text>
+            </View>
           </View>
         ) : (
           <View style={styles.countdownCard}>
             <View style={styles.countdownIconBg}>
               <CustomIcon name="calendar" size={24} color={COLORS.primary} iconType="Ionicons" touchable={false} />
             </View>
-            <Text style={styles.countdownText}>No upcoming sessions scheduled.</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Appointments')}>
-              <Text style={styles.bookNowInline}>Book Now</Text>
-            </TouchableOpacity>
+            <View style={styles.countdownContent}>
+              <Text style={styles.countdownText}>No upcoming sessions scheduled.</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Appointments')}>
+                <Text style={styles.bookNowInline}>Book Now</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
+
+        {/* Mood Check-in Prompt */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.moodPromptCard}
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate('PatientMoodTracker')}
+          >
+            <View style={[styles.activityIconBg, {backgroundColor: COLORS.accent}]}>
+              <CustomIcon name="smile" size={24} color={COLORS.primary} iconType="Feather" touchable={false} />
+            </View>
+            <View style={styles.activityInfo}>
+              <Text style={styles.activityTitle}>Mood Check-in</Text>
+              <Text style={styles.activitySub}>How are you feeling right now? Log today&apos;s mood.</Text>
+            </View>
+            <CustomIcon name="chevron-right" size={20} color={COLORS.gray400} iconType="Feather" touchable={false} />
+          </TouchableOpacity>
+        </View>
 
         {/* Quick Actions */}
         <View style={styles.section}>
@@ -340,6 +375,11 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.xxl * 1.5,
     borderBottomLeftRadius: RADIUS.xl,
     borderBottomRightRadius: RADIUS.xl,
+    overflow: 'hidden',
+  },
+  headerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(22, 38, 31, 0.52)',
   },
   headerRow: {
     flexDirection: 'row',
@@ -381,11 +421,42 @@ const styles = StyleSheet.create({
     marginRight: SPACING.md,
   },
   countdownText: {
-    flex: 1,
     fontSize: FONTS.sizes.md,
     fontWeight: '600',
     color: COLORS.gray900,
     lineHeight: 22,
+    flexShrink: 1,
+  },
+  countdownContent: {
+    flex: 1,
+    minWidth: 0,
+  },
+  sessionStatusBadge: {
+    alignSelf: 'flex-start',
+    borderRadius: RADIUS.full,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginBottom: 8,
+  },
+  sessionStatusToday: {
+    backgroundColor: '#EAF7EF',
+  },
+  sessionStatusFuture: {
+    backgroundColor: '#EEF2F7',
+  },
+  sessionStatusPulse: {
+    borderWidth: 1,
+    borderColor: '#8ED2A6',
+  },
+  sessionStatusText: {
+    fontSize: FONTS.sizes.xs,
+    fontWeight: '700',
+  },
+  sessionStatusTodayText: {
+    color: '#2E7D32',
+  },
+  sessionStatusFutureText: {
+    color: COLORS.gray600,
   },
   bookNowInline: {
     color: COLORS.primary,
@@ -403,6 +474,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.gray900,
     marginBottom: SPACING.md,
+  },
+  moodPromptCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    padding: SPACING.md,
+    borderRadius: RADIUS.xl,
+    ...SHADOWS.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.8)',
   },
   
   toolsRow: {

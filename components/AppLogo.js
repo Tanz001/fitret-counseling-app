@@ -3,7 +3,7 @@ import { Image, StyleSheet } from 'react-native';
 
 const AppLogo = ({ size = 80, style }) => (
   <Image
-    source={require('../assets/applogo.png')}
+    source={require('../assets/logoo.png')}
     style={[styles.logo, { width: size, height: size }, style]}
     resizeMode="contain"
   />

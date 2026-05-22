@@ -1,14 +1,14 @@
-import React, {useEffect, useState, useCallback} from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   TouchableOpacity,
   Image,
   Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, {
   Path,
   Defs,
@@ -18,22 +18,22 @@ import Svg, {
   Circle,
 } from 'react-native-svg';
 import CustomIcon from '../components/CustomIcon';
-import {COLORS, FONTS, SPACING, RADIUS, SHADOWS} from '../constants/theme';
+import { COLORS, FONTS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
 import { formatEtb } from '../constants/currency';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {supabase} from '../utils/supabase';
+import { supabase } from '../utils/supabase';
 import moment from 'moment';
-import {useFocusEffect} from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 
-const {width} = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 const CHART_WIDTH = width - SPACING.lg * 2 - SPACING.lg * 2;
 const CHART_HEIGHT = 140;
-const PAD = {left: 8, right: 8, top: 20, bottom: 28};
+const PAD = { left: 8, right: 8, top: 20, bottom: 28 };
 const GRAPH_H = CHART_HEIGHT - PAD.top - PAD.bottom;
 const LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const WEEK_DATA = [4, 7, 5, 9, 6, 3, 8];
 
-const DoctorHomeScreen = ({navigation}) => {
+const DoctorHomeScreen = ({ navigation }) => {
   const [doctorName, setDoctorName] = useState('Doctor');
   const [avatar, setAvatar] = useState(require('../assets/person.webp'));
   const [stats, setStats] = useState({ appointments: 0, earnings: 0 });
@@ -56,9 +56,8 @@ const DoctorHomeScreen = ({navigation}) => {
   const linePath = points
     .map((p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`))
     .join(' ');
-  const areaPath = `${linePath} L ${points[points.length - 1].x} ${
-    PAD.top + GRAPH_H
-  } L ${points[0].x} ${PAD.top + GRAPH_H} Z`;
+  const areaPath = `${linePath} L ${points[points.length - 1].x} ${PAD.top + GRAPH_H
+    } L ${points[0].x} ${PAD.top + GRAPH_H} Z`;
 
   useEffect(() => {
     fetchDashboardData();
@@ -74,12 +73,12 @@ const DoctorHomeScreen = ({navigation}) => {
     try {
       setLoading(true);
       const {
-        data: {user},
+        data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
 
       // 1. Fetch Profile
-      const {data: profile} = await supabase
+      const { data: profile } = await supabase
         .from('users')
         .select('full_name, profile_picture')
         .eq('id', user.id)
@@ -87,11 +86,39 @@ const DoctorHomeScreen = ({navigation}) => {
 
       if (profile) {
         if (profile.full_name) setDoctorName(profile.full_name.split(' ')[0]);
-        if (profile.profile_picture) setAvatar({uri: profile.profile_picture});
+        if (profile.profile_picture) setAvatar({ uri: profile.profile_picture });
       }
 
-      // 2. Fetch all therapist appointments for totals
-      const {data: allAppointments, error: aptError} = await supabase
+      // 2. Assigned patients (patient_therapists) — not only those with upcoming appointments
+      const { data: assignments, error: assignError } = await supabase
+        .from('patient_therapists')
+        .select('patient_id')
+        .eq('therapist_id', user.id);
+
+      let patientMap = {};
+      if (!assignError && assignments?.length) {
+        const assignedIds = [
+          ...new Set(assignments.map((a) => a.patient_id).filter(Boolean)),
+        ];
+        const { data: assignedPatients, error: patientsError } = await supabase
+          .from('users')
+          .select('id, full_name, profile_picture')
+          .in('id', assignedIds);
+
+        if (!patientsError && assignedPatients) {
+          setMyPatients(assignedPatients);
+          assignedPatients.forEach((p) => {
+            patientMap[p.id] = p;
+          });
+        } else {
+          setMyPatients([]);
+        }
+      } else {
+        setMyPatients([]);
+      }
+
+      // 3. Appointments for stats and upcoming sessions
+      const { data: allAppointments, error: aptError } = await supabase
         .from('appointments')
         .select('*')
         .eq('therapist_id', user.id);
@@ -106,7 +133,6 @@ const DoctorHomeScreen = ({navigation}) => {
           earnings: totalEarnings,
         });
 
-        // Upcoming = pending/confirmed and not in the past
         const now = moment();
         const upcoming = allAppointments
           .filter(
@@ -123,38 +149,39 @@ const DoctorHomeScreen = ({navigation}) => {
           })
           .slice(0, 5);
 
-        // 3. Fetch patient details for upcoming cards only
-        const patientIds = [
-          ...new Set(upcoming.map((u) => u.patient_id).filter(Boolean)),
+        const missingPatientIds = [
+          ...new Set(
+            upcoming
+              .map((u) => u.patient_id)
+              .filter((id) => id && !patientMap[id]),
+          ),
         ];
-        if (patientIds.length > 0) {
-          const {data: patients} = await supabase
+        if (missingPatientIds.length > 0) {
+          const { data: extraPatients } = await supabase
             .from('users')
             .select('id, full_name, profile_picture')
-            .in('id', patientIds);
-
-          const patientMap = {};
-          if (patients)
-            patients.forEach(p => {
-              patientMap[p.id] = p;
-            });
-
-          const formattedUpcoming = upcoming.map(u => {
-            const p = patientMap[u.patient_id] || {};
-            const isToday = moment(u.appointment_date).isSame(moment(), 'day');
-            return {
-              ...u,
-              patientName: p.full_name || 'Patient',
-              patientAvatar: p.profile_picture ? { uri: p.profile_picture } : null,
-              displayDate: isToday ? 'Today' : moment(u.appointment_date).format('MMM D'),
-              displayTime: moment(u.appointment_time, 'HH:mm:ss').format('hh:mm A'),
-            };
+            .in('id', missingPatientIds);
+          (extraPatients || []).forEach((p) => {
+            patientMap[p.id] = p;
           });
-          setUpcomingSessions(formattedUpcoming);
-          setMyPatients(patients || []);
-        } else {
-          setUpcomingSessions([]);
-          setMyPatients([]);
+        }
+
+        const formattedUpcoming = upcoming.map((u) => {
+          const p = patientMap[u.patient_id] || {};
+          const isToday = moment(u.appointment_date).isSame(moment(), 'day');
+          return {
+            ...u,
+            patientName: p.full_name || 'Patient',
+            patientAvatar: p.profile_picture ? { uri: p.profile_picture } : null,
+            displayDate: isToday ? 'Today' : moment(u.appointment_date).format('MMM D'),
+            displayTime: moment(u.appointment_time, 'HH:mm:ss').format('hh:mm A'),
+          };
+        });
+        setUpcomingSessions(formattedUpcoming);
+      } else {
+        setUpcomingSessions([]);
+        if (aptError) {
+          setStats({ appointments: 0, earnings: 0 });
         }
       }
     } catch (e) {
@@ -163,6 +190,12 @@ const DoctorHomeScreen = ({navigation}) => {
       setLoading(false);
     }
   }, []);
+
+  const navigateToStack = (screen, params) => {
+    navigation.getParent()?.navigate(screen, params) ?? navigation.navigate(screen, params);
+  };
+
+  const selectedPatientData = myPatients.find((p) => p.id === selectedPatient);
 
   const handleUpdateStatus = async (id, newStatus) => {
     try {
@@ -229,6 +262,199 @@ const DoctorHomeScreen = ({navigation}) => {
           </View>
         </View>
 
+
+
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Upcoming Appointments</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Appointments')}>
+            <Text style={styles.seeAll}>View Schedule</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Upcoming Sessions Section */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.horizontalScrollContent}
+        >
+          {upcomingSessions.length > 0 ? (
+            upcomingSessions.map((apt) => (
+              <TouchableOpacity
+                key={apt.id}
+                style={styles.appointmentCardCompact}
+                activeOpacity={0.9}
+                onPress={() =>
+                  navigation.navigate('DoctorAppointmentDetail', {
+                    appointment: {
+                      ...apt,
+                      name: apt.patientName,
+                      issue: apt.notes || 'General Consultation',
+                      date: apt.displayDate,
+                      time: apt.appointment_time,
+                      status: apt.status.charAt(0).toUpperCase() + apt.status.slice(1),
+                      type: apt.appointment_type || 'Video Call',
+                    }
+                  })
+                }>
+                <View style={styles.aptHeaderCompact}>
+                  <View style={styles.aptTimeRow}>
+                    <CustomIcon
+                      name="clock"
+                      size={12}
+                      color={COLORS.gray600}
+                      iconType="Feather"
+                      touchable={false}
+                      style={{ marginRight: 4 }}
+                    />
+                    <Text style={styles.aptTimeSmall}>{apt.displayDate} · {apt.displayTime}</Text>
+                  </View>
+                  <View style={[styles.badgeSmall, apt.status === 'confirmed' && styles.confirmedBadge]}>
+                    <Text style={styles.badgeTextSmall}>
+                      {apt.status.toUpperCase()}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.patientInfoCompact}>
+                  <View style={styles.patientAvatarWrapperSmall}>
+                    {apt.patientAvatar ? (
+                      <Image source={apt.patientAvatar} style={styles.patientAvatarXS} />
+                    ) : (
+                      <View style={styles.patientAvatarInitialsXS}>
+                        <Text style={styles.initialsTextXS}>{apt.patientName.charAt(0)}</Text>
+                      </View>
+                    )}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.patientNameSmall} numberOfLines={1}>{apt.patientName}</Text>
+                    <Text style={styles.patientIssueSmall} numberOfLines={1}>
+                      {apt.notes || 'General Consultation'}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.cardFooterCompact}>
+                  <TouchableOpacity
+                    style={styles.viewDetailsBtn}
+                    onPress={() =>
+                      navigation.navigate('DoctorAppointmentDetail', {
+                        appointment: {
+                          ...apt,
+                          name: apt.patientName,
+                          issue: apt.notes || 'General Consultation',
+                          date: apt.displayDate,
+                          time: apt.appointment_time,
+                          status: apt.status.charAt(0).toUpperCase() + apt.status.slice(1),
+                          type: apt.appointment_type || 'Video Call',
+                        }
+                      })
+                    }
+                  >
+                    <Text style={styles.viewDetailsBtnText}>Open Session</Text>
+                  </TouchableOpacity>
+
+                  {/* {apt.status === 'pending' && (
+                    <TouchableOpacity
+                      style={styles.confirmBtnSmall}
+                      onPress={() => handleUpdateStatus(apt.id, 'confirmed')}
+                    >
+                      <Text style={styles.confirmBtnTextSmall}>Confirm</Text>
+                    </TouchableOpacity>
+                  )}
+                  {apt.status === 'confirmed' && (
+                    <TouchableOpacity
+                      style={styles.joinBtnSmall}
+                      onPress={() => navigation.navigate('VideoCall')}
+                    >
+                      <CustomIcon name="video" size={14} color={COLORS.white} iconType="Feather" touchable={false} />
+                    </TouchableOpacity>
+                  )} */}
+                </View>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View style={styles.emptyAptCardHorizontal}>
+              <Text style={styles.emptyAptText}>No upcoming sessions</Text>
+            </View>
+          )}
+        </ScrollView>
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>My Assigned Patients</Text>
+          <View style={styles.patientSectionLinks}>
+            <TouchableOpacity onPress={() => navigateToStack('TherapistResources')}>
+              <Text style={styles.seeAll}>Resources</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigateToStack('TherapistForms')}>
+              <Text style={styles.seeAll}>Forms</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: SPACING.lg, marginBottom: SPACING.md, gap: SPACING.lg }}>
+          {myPatients.length > 0 ? myPatients.map(p => {
+            const isActive = selectedPatient === p.id;
+            return (
+              <TouchableOpacity
+                key={p.id}
+                style={[styles.patientCard, isActive && styles.patientCardActive]}
+                onPress={() => setSelectedPatient(isActive ? null : p.id)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.patientAvatarContainer}>
+                  <Image
+                    source={p.profile_picture ? { uri: p.profile_picture } : require('../assets/person.webp')}
+                    style={[styles.patientCardAvatar, isActive && styles.activeAvatarBorder]}
+                  />
+                  {isActive && (
+                    <View style={styles.activeCheck}>
+                      <CustomIcon name="check" size={10} color={COLORS.white} iconType="Feather" touchable={false} />
+                    </View>
+                  )}
+                </View>
+                <Text style={[styles.patientCardName, isActive && styles.patientCardNameActive]} numberOfLines={1}>
+                  {(p.full_name || 'Patient').split(' ')[0]}
+                </Text>
+                <Text style={styles.patientCardStatus}>Active</Text>
+              </TouchableOpacity>
+            );
+          }) : (
+            <Text style={{ color: COLORS.gray500, marginLeft: SPACING.lg }}>No patients assigned yet.</Text>
+          )}
+        </ScrollView>
+
+        {selectedPatientData ? (
+          <View style={styles.patientActionsRow}>
+            <Text style={styles.patientActionsLabel} numberOfLines={1}>
+              {(selectedPatientData.full_name || 'Patient').split(' ')[0]}
+            </Text>
+            <TouchableOpacity
+              style={styles.patientActionBtn}
+              onPress={() =>
+                navigateToStack('TherapistResources', {
+                  patientId: selectedPatientData.id,
+                  patientName: selectedPatientData.full_name || 'Patient',
+                })
+              }
+            >
+              <CustomIcon name="folder" size={16} color={COLORS.primary} iconType="Feather" touchable={false} />
+              <Text style={styles.patientActionBtnText}>Resources</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.patientActionBtn}
+              onPress={() =>
+                navigateToStack('TherapistForms', {
+                  patientId: selectedPatientData.id,
+                  patientName: selectedPatientData.full_name || 'Patient',
+                })
+              }
+            >
+              <CustomIcon name="file-text" size={16} color={COLORS.primary} iconType="Feather" touchable={false} />
+              <Text style={styles.patientActionBtnText}>Forms</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
         {/* Mock Analytics Graph Area */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Performance Overview</Text>
@@ -242,7 +468,7 @@ const DoctorHomeScreen = ({navigation}) => {
             <Text style={styles.graphTitle}>Weekly sessions</Text>
             <View style={styles.graphLegend}>
               <View
-                style={[styles.legendDot, {backgroundColor: COLORS.primary}]}
+                style={[styles.legendDot, { backgroundColor: COLORS.primary }]}
               />
               <Text style={styles.legendText}>Sessions</Text>
             </View>
@@ -310,171 +536,13 @@ const DoctorHomeScreen = ({navigation}) => {
             ))}
           </View>
         </View>
-
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>My Assigned Patients</Text>
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: SPACING.lg, marginBottom: SPACING.xl, gap: SPACING.lg }}>
-          {myPatients.length > 0 ? myPatients.map(p => {
-            const isActive = selectedPatient === p.id;
-            return (
-              <TouchableOpacity 
-                key={p.id} 
-                style={[styles.patientCard, isActive && styles.patientCardActive]}
-                onPress={() => setSelectedPatient(isActive ? null : p.id)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.patientAvatarContainer}>
-                  <Image 
-                    source={p.profile_picture ? {uri: p.profile_picture} : require('../assets/person.webp')} 
-                    style={[styles.patientCardAvatar, isActive && styles.activeAvatarBorder]} 
-                  />
-                  {isActive && (
-                    <View style={styles.activeCheck}>
-                      <CustomIcon name="check" size={10} color={COLORS.white} iconType="Feather" touchable={false} />
-                    </View>
-                  )}
-                </View>
-                <Text style={[styles.patientCardName, isActive && styles.patientCardNameActive]} numberOfLines={1}>
-                  {p.full_name.split(' ')[0]}
-                </Text>
-                <Text style={styles.patientCardStatus}>Active</Text>
-              </TouchableOpacity>
-            );
-          }) : (
-            <Text style={{color: COLORS.gray500, marginLeft: SPACING.lg}}>No patients assigned yet.</Text>
-          )}
-        </ScrollView>
-
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Upcoming Appointments</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Appointments')}>
-            <Text style={styles.seeAll}>View Schedule</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Upcoming Sessions Section */}
-        {upcomingSessions.length > 0 ? (
-          upcomingSessions.map((apt) => (
-            <TouchableOpacity
-              key={apt.id}
-              style={styles.appointmentCard}
-              activeOpacity={0.9}
-              onPress={() =>
-                navigation.navigate('DoctorAppointmentDetail', {
-                  appointment: {
-                    ...apt,
-                    name: apt.patientName,
-                    issue: apt.notes || 'General Consultation',
-                    date: apt.displayDate,
-                    time: apt.appointment_time,
-                    status: apt.status.charAt(0).toUpperCase() + apt.status.slice(1),
-                    type: apt.appointment_type || 'Video Call',
-                  }
-                })
-              }>
-              <View style={styles.aptHeader}>
-                <View style={styles.aptTimeRow}>
-                  <CustomIcon
-                    name="clock"
-                    size={16}
-                    color={COLORS.gray600}
-                    iconType="Feather"
-                    touchable={false}
-                    style={{marginRight: 4}}
-                  />
-                  <Text style={styles.aptTime}>{apt.displayDate} · {apt.displayTime}</Text>
-                </View>
-                <View style={[styles.badge, apt.status === 'confirmed' && styles.confirmedBadge]}>
-                  <Text style={[styles.badgeText, apt.status === 'confirmed' && styles.confirmedBadgeText]}>
-                    {apt.status.toUpperCase()}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.aptDivider} />
-
-              <View style={styles.patientInfo}>
-                <View style={styles.patientAvatarWrapper}>
-                  {apt.patientAvatar ? (
-                    <Image source={apt.patientAvatar} style={styles.patientAvatarSmall} />
-                  ) : (
-                    <View style={styles.patientAvatarInitials}>
-                      <Text style={styles.initialsText}>{apt.patientName.charAt(0)}</Text>
-                    </View>
-                  )}
-                </View>
-                <View style={{flex: 1}}>
-                  <Text style={styles.patientName}>{apt.patientName}</Text>
-                  <Text style={styles.patientIssue} numberOfLines={1}>
-                    {apt.notes || 'General Consultation'}
-                  </Text>
-                </View>
-                {apt.status === 'confirmed' ? (
-                  <TouchableOpacity 
-                    style={styles.joinBtn}
-                    onPress={() => navigation.navigate('VideoCall')} // Example navigation
-                  >
-                    <CustomIcon
-                      name="video"
-                      size={18}
-                      color={COLORS.white}
-                      iconType="Feather"
-                      touchable={false}
-                    />
-                  </TouchableOpacity>
-                ) : apt.status === 'pending' ? (
-                  <TouchableOpacity 
-                    style={styles.confirmBtn}
-                    onPress={() => handleUpdateStatus(apt.id, 'confirmed')}
-                  >
-                     <Text style={styles.confirmBtnText}>Confirm</Text>
-                  </TouchableOpacity>
-                ) : null}
-              </View>
-
-              {/* Quick Actions Row */}
-              <View style={styles.quickActionsRow}>
-                {apt.status === 'confirmed' && (
-                  <TouchableOpacity 
-                    style={styles.actionLink}
-                    onPress={() => handleUpdateStatus(apt.id, 'completed')}
-                  >
-                    <Text style={styles.actionLinkText}>Mark as Completed</Text>
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity 
-                  style={styles.actionLink}
-                  onPress={() =>
-                    navigation.navigate('DoctorAppointmentDetail', {
-                      appointment: {
-                        ...apt,
-                        name: apt.patientName,
-                        issue: apt.notes || 'General Consultation',
-                        date: apt.displayDate,
-                        time: apt.appointment_time,
-                        status: apt.status.charAt(0).toUpperCase() + apt.status.slice(1),
-                        type: apt.appointment_type || 'Video Call',
-                      }
-                    })
-                  }
-                >
-                  <Text style={[styles.actionLinkText, {color: COLORS.gray500}]}>View Details</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
-          ))
-        ) : (
-          <View style={styles.emptyAptCard}>
-            <Text style={styles.emptyAptText}>No upcoming sessions found</Text>
-          </View>
-        )}
       </ScrollView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: COLORS.offWhite},
+  container: { flex: 1, backgroundColor: COLORS.offWhite },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -486,8 +554,8 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.gray100,
     ...SHADOWS.sm,
   },
-  greetingHeader: {flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0, marginRight: SPACING.md},
-  greetingTextWrap: {flex: 1, minWidth: 0},
+  greetingHeader: { flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0, marginRight: SPACING.md },
+  greetingTextWrap: { flex: 1, minWidth: 0 },
   avatar: {
     width: 50,
     height: 50,
@@ -501,7 +569,7 @@ const styles = StyleSheet.create({
     color: COLORS.gray500,
     fontWeight: '500',
   },
-  drName: {fontSize: FONTS.sizes.xl, fontWeight: '700', color: COLORS.gray900, flexShrink: 1},
+  drName: { fontSize: FONTS.sizes.xl, fontWeight: '700', color: COLORS.gray900, flexShrink: 1 },
   notifBtn: {
     width: 44,
     height: 44,
@@ -525,9 +593,9 @@ const styles = StyleSheet.create({
     borderColor: COLORS.white,
   },
 
-  scrollContent: {padding: SPACING.lg, paddingBottom: 100},
+  scrollContent: { padding: SPACING.lg, paddingBottom: 100 },
 
-  statsCardWrapper: {marginBottom: SPACING.xl},
+  statsCardWrapper: { marginBottom: SPACING.xl },
   statsCard: {
     backgroundColor: COLORS.primary,
     borderRadius: RADIUS.xl,
@@ -536,7 +604,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...SHADOWS.lg,
   },
-  statColumn: {flex: 1},
+  statColumn: { flex: 1 },
   statLabel: {
     fontSize: FONTS.sizes.sm,
     color: 'rgba(255,255,255,0.8)',
@@ -573,7 +641,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.gray900,
   },
-  seeAll: {fontSize: FONTS.sizes.sm, color: COLORS.primary, fontWeight: '700'},
+  seeAll: { fontSize: FONTS.sizes.sm, color: COLORS.primary, fontWeight: '700' },
 
   graphContainer: {
     backgroundColor: COLORS.white,
@@ -595,14 +663,14 @@ const styles = StyleSheet.create({
     color: COLORS.gray500,
     fontWeight: '600',
   },
-  graphLegend: {flexDirection: 'row', alignItems: 'center'},
-  legendDot: {width: 8, height: 8, borderRadius: 4, marginRight: 6},
+  graphLegend: { flexDirection: 'row', alignItems: 'center' },
+  legendDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
   legendText: {
     fontSize: FONTS.sizes.xs,
     color: COLORS.gray500,
     fontWeight: '600',
   },
-  svgChart: {alignSelf: 'center'},
+  svgChart: { alignSelf: 'center' },
   graphLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -631,8 +699,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  aptTimeRow: {flexDirection: 'row', alignItems: 'center'},
-  aptTime: {color: COLORS.gray700, fontWeight: '600', fontSize: FONTS.sizes.sm},
+  aptTimeRow: { flexDirection: 'row', alignItems: 'center' },
+  aptTime: { color: COLORS.gray700, fontWeight: '600', fontSize: FONTS.sizes.sm },
   badge: {
     backgroundColor: COLORS.primary + '15',
     paddingHorizontal: 12,
@@ -649,7 +717,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.gray100,
     marginVertical: SPACING.md,
   },
-  patientInfo: {flexDirection: 'row', alignItems: 'center'},
+  patientInfo: { flexDirection: 'row', alignItems: 'center' },
   patientAvatarInitials: {
     width: 48,
     height: 48,
@@ -670,7 +738,7 @@ const styles = StyleSheet.create({
     color: COLORS.gray900,
     marginBottom: 2,
   },
-  patientIssue: {fontSize: FONTS.sizes.xs, color: COLORS.gray500},
+  patientIssue: { fontSize: FONTS.sizes.xs, color: COLORS.gray500 },
   joinBtn: {
     width: 48,
     height: 48,
@@ -713,8 +781,119 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.primary,
   },
-  emptyAptCard: {
-    padding: SPACING.xl,
+  horizontalScrollContent: {
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.lg,
+    gap: SPACING.md,
+  },
+  appointmentCardCompact: {
+    width: width * 0.65,
+    backgroundColor: COLORS.white,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.md,
+    ...SHADOWS.md,
+    borderWidth: 1,
+    borderColor: COLORS.gray100,
+  },
+  aptHeaderCompact: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+  },
+  aptTimeSmall: {
+    color: COLORS.gray600,
+    fontWeight: '600',
+    fontSize: 11,
+  },
+  badgeSmall: {
+    backgroundColor: COLORS.primary + '15',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: RADIUS.full,
+  },
+  badgeTextSmall: {
+    color: COLORS.primaryDark,
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  patientInfoCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+  },
+  patientAvatarWrapperSmall: {
+    marginRight: SPACING.sm,
+  },
+  patientAvatarXS: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  patientAvatarInitialsXS: {
+    width: 32,
+    height: 32,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.gray50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  initialsTextXS: {
+    color: COLORS.primary,
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  patientNameSmall: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.gray900,
+  },
+  patientIssueSmall: {
+    fontSize: 10,
+    color: COLORS.gray500,
+  },
+  cardFooterCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  viewDetailsBtn: {
+    flex: 1,
+    backgroundColor: COLORS.gray50,
+    paddingVertical: 6,
+    borderRadius: RADIUS.sm,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.gray200,
+  },
+  viewDetailsBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.gray700,
+  },
+  confirmBtnSmall: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: RADIUS.sm,
+  },
+  confirmBtnTextSmall: {
+    color: COLORS.white,
+    fontWeight: '700',
+    fontSize: 11,
+  },
+  joinBtnSmall: {
+    width: 30,
+    height: 30,
+    backgroundColor: COLORS.gray900,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyAptCardHorizontal: {
+    width: width - SPACING.lg * 2,
+    padding: SPACING.lg,
     backgroundColor: COLORS.white,
     borderRadius: RADIUS.xl,
     alignItems: 'center',
@@ -723,16 +902,17 @@ const styles = StyleSheet.create({
     borderColor: COLORS.gray100,
     borderStyle: 'dashed',
   },
-  emptyAptText: { color: COLORS.gray500, fontSize: FONTS.sizes.md },
   patientCard: {
     width: 90,
     backgroundColor: COLORS.white,
     padding: SPACING.md,
-    borderRadius: RADIUS.xl,
+    borderRadius: 10,
     alignItems: 'center',
     ...SHADOWS.md,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.8)',
+    marginBottom: 10
+
   },
   patientCardActive: {
     backgroundColor: COLORS.primary,
@@ -779,6 +959,39 @@ const styles = StyleSheet.create({
     color: COLORS.gray400,
     marginTop: 2,
     fontWeight: '600',
+  },
+  patientSectionLinks: {
+    flexDirection: 'row',
+    gap: SPACING.md,
+  },
+  patientActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.lg,
+    marginBottom: SPACING.xl,
+    gap: SPACING.sm,
+  },
+  patientActionsLabel: {
+    flex: 1,
+    fontSize: FONTS.sizes.sm,
+    fontWeight: '700',
+    color: COLORS.gray700,
+  },
+  patientActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.gray200,
+    gap: 6,
+  },
+  patientActionBtnText: {
+    fontSize: FONTS.sizes.sm,
+    fontWeight: '700',
+    color: COLORS.primary,
   },
 });
 

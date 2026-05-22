@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ScrollView,
   StatusBar,
@@ -13,7 +12,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Keyboard,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import Svg, { Path, Circle, Defs, LinearGradient, Stop, Line } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -70,6 +71,20 @@ const PatientMoodTrackerScreen = ({ navigation }) => {
 
   const [hasSeenIntro, setHasSeenIntro] = useState(true); // default true while checking
   const [timeFilter, setTimeFilter] = useState('7');
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', (e) => {
+      setKeyboardHeight(e.endCoordinates?.height || 0);
+    });
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardHeight(0);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     AsyncStorage.getItem('moodTrackerIntroShown')
@@ -340,19 +355,6 @@ const PatientMoodTrackerScreen = ({ navigation }) => {
             />
           </View>
 
-          <TouchableOpacity
-            style={[styles.saveBtn, (!selectedMood || saving) && styles.saveBtnDisabled]}
-            onPress={handleSave}
-            disabled={!selectedMood || saving}
-            activeOpacity={0.9}
-          >
-            {saving ? (
-              <ActivityIndicator size="small" color={COLORS.white} />
-            ) : (
-              <Text style={styles.saveBtnText}>Save today&apos;s check-in</Text>
-            )}
-          </TouchableOpacity>
-
           <View style={styles.chartCard}>
             <View style={styles.chartHeader}>
               <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
@@ -469,7 +471,20 @@ const PatientMoodTrackerScreen = ({ navigation }) => {
             </View>
           )}
 
-          <View style={styles.bottomSpacer} />
+          <TouchableOpacity
+            style={[styles.saveBtn, (!selectedMood || saving) && styles.saveBtnDisabled]}
+            onPress={handleSave}
+            disabled={!selectedMood || saving}
+            activeOpacity={0.9}
+          >
+            {saving ? (
+              <ActivityIndicator size="small" color={COLORS.white} />
+            ) : (
+              <Text style={styles.saveBtnText}>Save today&apos;s check-in</Text>
+            )}
+          </TouchableOpacity>
+
+          <View style={[styles.bottomSpacer, keyboardHeight > 0 && { height: keyboardHeight + SPACING.lg }]} />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -511,7 +526,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
 
-  content: { padding: SPACING.lg, paddingBottom: SPACING.xxl * 2 },
+  content: { padding: SPACING.lg, paddingBottom: 130 },
 
   greetingCard: {
     backgroundColor: COLORS.white,
@@ -563,7 +578,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: RADIUS.lg,
     alignItems: 'center',
-    marginBottom: SPACING.xl,
+    marginBottom: SPACING.lg,
   },
   saveBtnDisabled: { opacity: 0.6 },
   saveBtnText: { color: COLORS.white, fontSize: FONTS.sizes.lg, fontWeight: '700' },
@@ -616,7 +631,7 @@ const styles = StyleSheet.create({
   recentNote: { fontSize: FONTS.sizes.xs, color: COLORS.gray500, marginTop: 2 },
   recentDot: { width: 10, height: 10, borderRadius: 5, marginLeft: SPACING.sm },
 
-  bottomSpacer: { height: 40 },
+  bottomSpacer: { height: 20 },
 
   // Intro Slider Styles
   introSlide: {

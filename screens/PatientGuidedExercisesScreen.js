@@ -1,26 +1,22 @@
 /**
- * Guided audio comes from `therapy_documents` where document_type = 'audio'.
- * Uses `file_url`: full https URL, or a Storage object path in the `assets` bucket
- * (resolved via signed URL, then public URL).
- * Visibility is enforced by RLS (patient_id = auth.uid(), therapist, or admin).
+ * Guided audio from `resources` where resource_type = 'audio' (assigned via resource_access).
  */
 import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
   Alert,
-  Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import Video from 'react-native-video';
 import CustomIcon from '../components/CustomIcon';
 import { COLORS, FONTS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
-import { supabase } from '../utils/supabase';
+import { fetchPatientResources } from '../services/resourcesApi';
 import { resolveTherapyFileUrl } from '../utils/resolveTherapyFileUrl';
 
 const PatientGuidedExercisesScreen = ({ navigation }) => {
@@ -36,16 +32,10 @@ const PatientGuidedExercisesScreen = ({ navigation }) => {
     setLoading(true);
     setListError(null);
     try {
-      const { data, error } = await supabase
-        .from('therapy_documents')
-        .select('id, title, description, file_url, document_type, created_at')
-        .eq('document_type', 'audio')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setTracks(data || []);
+      const data = await fetchPatientResources('audio');
+      setTracks(data);
     } catch (e) {
-      console.warn('therapy_documents (audio) fetch:', e);
+      console.warn('resources (audio) fetch:', e);
       setListError(e.message || 'Could not load exercises');
       setTracks([]);
     } finally {
@@ -74,7 +64,7 @@ const PatientGuidedExercisesScreen = ({ navigation }) => {
     try {
       const uri = await resolveTherapyFileUrl(item.file_url);
       if (!uri) {
-        Alert.alert('Unavailable', 'This document has no playable file URL yet.');
+        Alert.alert('Unavailable', 'This exercise has no audio file yet.');
         return;
       }
       setPlayingId(item.id);
@@ -121,7 +111,7 @@ const PatientGuidedExercisesScreen = ({ navigation }) => {
           ) : (
             <CustomIcon
               name={isPlaying ? 'pause' : 'play'}
-              size={22}
+              size={20}
               color={COLORS.white}
               iconType="Feather"
               touchable={false}
@@ -135,61 +125,37 @@ const PatientGuidedExercisesScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.headerSide} onPress={() => navigation.goBack()} hitSlop={12}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <CustomIcon name="chevron-left" size={24} color={COLORS.gray900} iconType="Feather" touchable={false} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          Guided exercises
-        </Text>
-        <View style={styles.headerSide} />
+        <Text style={styles.headerTitle}>Guided Exercises</Text>
+        <View style={styles.backBtn} />
       </View>
 
-      <Text style={styles.intro}>
-        Listen to sessions curated by your care team. New tracks appear here when they are published.
-      </Text>
-
       {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-        </View>
+        <ActivityIndicator style={{ marginTop: 40 }} color={COLORS.primary} />
       ) : listError ? (
-        <View style={styles.centered}>
-          <CustomIcon name="alert-circle" size={40} color={COLORS.gray400} iconType="Feather" touchable={false} />
-          <Text style={styles.errorText}>{listError}</Text>
-          <Text style={styles.hintText}>
-            Check therapy_documents RLS and that audio rows use document_type audio with a valid file_url.
-          </Text>
-        </View>
+        <Text style={styles.errorText}>{listError}</Text>
       ) : (
         <FlatList
           data={tracks}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          contentContainerStyle={tracks.length === 0 ? styles.emptyList : styles.list}
+          contentContainerStyle={styles.list}
           ListEmptyComponent={
-            <View style={styles.empty}>
-              <CustomIcon name="music" size={48} color={COLORS.gray300} iconType="Feather" touchable={false} />
-              <Text style={styles.emptyTitle}>No guided audio yet</Text>
-              <Text style={styles.emptyText}>Check back soon — new sessions will show up here.</Text>
-            </View>
+            <Text style={styles.emptyText}>No audio exercises assigned yet.</Text>
           }
         />
       )}
 
       {activeUri ? (
         <Video
-          key={playingId || activeUri}
           source={{ uri: activeUri }}
           paused={paused}
-          playInBackground
-          playWhenInactive={Platform.OS === 'ios'}
-          ignoreSilentSwitch="ignore"
+          audioOnly
+          playInBackground={false}
           onEnd={onPlaybackEnd}
-          onError={() => {
-            Alert.alert('Playback error', 'Could not play this audio file.');
-            onPlaybackEnd();
-          }}
-          style={styles.hiddenPlayer}
+          style={styles.hiddenVideo}
         />
       ) : null}
     </SafeAreaView>
@@ -202,98 +168,50 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
     backgroundColor: COLORS.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.gray100,
   },
-  headerSide: { width: 44, height: 44, justifyContent: 'center', alignItems: 'flex-start' },
-  headerTitle: {
-    flex: 1,
-    minWidth: 0,
-    textAlign: 'center',
-    fontSize: FONTS.sizes.lg,
-    fontWeight: FONTS.weights.bold,
-    color: COLORS.gray900,
-  },
-  intro: {
-    fontSize: FONTS.sizes.sm,
-    lineHeight: 20,
-    color: COLORS.gray600,
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.sm,
-  },
+  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { fontSize: FONTS.sizes.lg, fontWeight: '700', color: COLORS.gray900 },
   list: { padding: SPACING.lg, paddingBottom: SPACING.xxl },
-  emptyList: { flexGrow: 1 },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.white,
-    borderRadius: RADIUS.lg,
     padding: SPACING.md,
+    borderRadius: RADIUS.xl,
     marginBottom: SPACING.md,
-    ...SHADOWS.sm,
+    ...SHADOWS.md,
+    borderWidth: 1,
+    borderColor: COLORS.gray100,
   },
   cardIconBg: {
     width: 48,
     height: 48,
-    borderRadius: RADIUS.full,
+    borderRadius: RADIUS.md,
     backgroundColor: COLORS.accent,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: SPACING.md,
   },
-  cardBody: { flex: 1, minWidth: 0 },
-  cardTitle: {
-    fontSize: FONTS.sizes.md,
-    fontWeight: FONTS.weights.semibold,
-    color: COLORS.gray900,
-    marginBottom: 4,
-  },
-  cardDesc: { fontSize: FONTS.sizes.sm, color: COLORS.gray600, lineHeight: 20 },
+  cardBody: { flex: 1 },
+  cardTitle: { fontSize: FONTS.sizes.md, fontWeight: '700', color: COLORS.gray900 },
+  cardDesc: { fontSize: FONTS.sizes.sm, color: COLORS.gray500, marginTop: 4 },
   playBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: SPACING.sm,
   },
-  playBtnActive: { backgroundColor: COLORS.gray800 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING.xl },
-  errorText: {
-    fontSize: FONTS.sizes.md,
-    fontWeight: FONTS.weights.medium,
-    color: COLORS.error,
-    textAlign: 'center',
-    marginTop: SPACING.md,
-  },
-  hintText: {
-    fontSize: FONTS.sizes.sm,
-    color: COLORS.gray500,
-    textAlign: 'center',
-    marginTop: SPACING.sm,
-    paddingHorizontal: SPACING.lg,
-    lineHeight: 20,
-  },
-  empty: { alignItems: 'center', paddingVertical: SPACING.xxl * 2, paddingHorizontal: SPACING.lg },
-  emptyTitle: {
-    fontSize: FONTS.sizes.lg,
-    fontWeight: FONTS.weights.bold,
-    color: COLORS.gray700,
-    marginTop: SPACING.lg,
-  },
-  emptyText: {
-    fontSize: FONTS.sizes.sm,
-    color: COLORS.gray500,
-    textAlign: 'center',
-    marginTop: SPACING.sm,
-    lineHeight: 20,
-  },
-  hiddenPlayer: { width: 1, height: 1, opacity: 0, position: 'absolute', bottom: 0, right: 0 },
+  playBtnActive: { backgroundColor: COLORS.primaryDark },
+  hiddenVideo: { width: 0, height: 0, position: 'absolute' },
+  emptyText: { textAlign: 'center', color: COLORS.gray500, marginTop: SPACING.xl },
+  errorText: { textAlign: 'center', color: COLORS.error, marginTop: SPACING.xl, paddingHorizontal: SPACING.lg },
 });
 
 export default PatientGuidedExercisesScreen;

@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ScrollView,
   TextInput,
@@ -13,7 +12,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import CustomIcon from '../components/CustomIcon';
 import { COLORS, FONTS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
@@ -264,7 +265,14 @@ const PatientJournalScreen = ({ navigation }) => {
             </View>
           ) : entries.length === 0 ? (
             <View style={styles.emptyWrap}>
-              <CustomIcon name="book-open" size={48} color={COLORS.gray300} iconType="Feather" touchable={false} />
+              <Image
+                source={require('../assets/person holding phone.webp')}
+                style={styles.emptyHeroImage}
+                resizeMode="cover"
+                accessibilityRole="image"
+                accessibilityLabel="Wellness journey illustration"
+              />
+              <Text style={styles.emptyHeadline}>Start your wellness journey today.</Text>
               <Text style={styles.emptyText}>No entries yet. Write your first one above.</Text>
             </View>
           ) : (
@@ -480,7 +488,22 @@ const styles = StyleSheet.create({
 
   loadingWrap: { padding: SPACING.xl, alignItems: 'center' },
   emptyWrap: { alignItems: 'center', padding: SPACING.xxl },
-  emptyText: { fontSize: FONTS.sizes.md, color: COLORS.gray500, marginTop: SPACING.md },
+  emptyHeroImage: {
+    width: '100%',
+    maxWidth: 280,
+    aspectRatio: 1,
+    borderRadius: RADIUS.xl,
+    backgroundColor: COLORS.gray100,
+  },
+  emptyHeadline: {
+    fontSize: FONTS.sizes.lg,
+    fontWeight: '700',
+    color: COLORS.gray800,
+    textAlign: 'center',
+    marginTop: SPACING.lg,
+    paddingHorizontal: SPACING.md,
+  },
+  emptyText: { fontSize: FONTS.sizes.md, color: COLORS.gray500, marginTop: SPACING.sm, textAlign: 'center' },
 
   entryCard: {
     backgroundColor: COLORS.white,
@@ -552,11 +575,11 @@ const styles = StyleSheet.create({
 
   editModalBox: {
     backgroundColor: COLORS.white,
-    borderTopLeftRadius: RADIUS.xl,
-    borderTopRightRadius: RADIUS.xl,
+    borderRadius: RADIUS.xl,
     padding: SPACING.xl,
-    marginTop: 'auto',
-    maxHeight: '90%',
+    width: '100%',
+    maxWidth: 560,
+    maxHeight: '85%',
   },
   editModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.sm },
   editModalTitle: { fontSize: FONTS.sizes.lg, fontWeight: '700', color: COLORS.gray900 },

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Platform, StyleSheet } from 'react-native';
+import { View, Platform, StyleSheet, Image } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CustomIcon from '../components/CustomIcon';
@@ -24,13 +24,11 @@ const PatientTabNavigator = () => {
         tabBarIcon: ({ focused, color, size }) => {
           if (route.name === 'Chat') {
             return (
-              <View style={styles.centerButton}>
-                <CustomIcon
-                  name="chatbubble-ellipses"
-                  size={26}
-                  color={COLORS.white}
-                  iconType="Ionicons"
-                  touchable={false}
+              <View style={styles.centerButton} collapsable={false}>
+                <Image
+                  source={require('../assets/logoo.png')}
+                  style={styles.centerLogo}
+                  resizeMode="cover"
                 />
               </View>
             );
@@ -91,6 +89,7 @@ const PatientTabNavigator = () => {
         component={AIChatBotScreen}
         options={{
           tabBarLabel: () => null,
+          tabBarItemStyle: { overflow: 'visible' },
         }}
       />
       <Tab.Screen name="Wellness" component={PatientWellnessScreen} options={{ tabBarLabel: 'Wellness' }} />
@@ -104,15 +103,22 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.white,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: -24,
     marginBottom: 4,
     ...SHADOWS.md,
-    borderWidth: 4,
-    borderColor: COLORS.offWhite,
-  }
+    borderWidth: 3,
+    borderColor: COLORS.primary,
+  },
+  centerLogo: {
+    width: 50,
+    height: 50,
+    marginTop: 6,
+    marginLeft: 2,
+    alignSelf: 'center',
+  },
 });
 
 export default PatientTabNavigator;

@@ -1,7 +1,6 @@
 import React, {Component} from 'react';
 import moment from 'moment';
 import {
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -19,6 +18,7 @@ import {
   BackHandler,
   KeyboardAvoidingView
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import CustomIcon from '../components/CustomIcon';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Connection from '../connection';

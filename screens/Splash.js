@@ -6,7 +6,7 @@ import { supabase } from '../utils/supabase';
 const Splash = ({ navigation }) => {
   useEffect(() => {
     const goToAuthOrIntro = async () => {
-      navigation.replace('AuthWelcome');
+      navigation.replace('AuthScreens', { authRole: 'patient' });
     };
 
     const checkUser = async () => {
@@ -96,7 +96,7 @@ const Splash = ({ navigation }) => {
       <StatusBar barStyle="dark-content" backgroundColor="white" />
       <View style={styles.logoContainer}>
         <Image
-          source={require('../assets/applogo.png')}
+          source={require('../assets/logoo.png')}
           style={styles.logo}
           resizeMode="contain"
         />
@@ -113,14 +113,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logoContainer: {
-    width: 280,
-    height: 280,
+    width: 340,
+    height: 340,
     justifyContent: 'center',
     alignItems: 'center',
   },
   logo: {
-    width: 250,
-    height: 250,
+    width: 320,
+    height: 320,
   },
 });
 

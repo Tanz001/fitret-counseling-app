@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TextInput, FlatList, Image, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, FlatList, Image, TouchableOpacity, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import CustomIcon from '../components/CustomIcon';
 import RBSheet from "react-native-raw-bottom-sheet";
 import { COLORS, FONTS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
@@ -164,9 +165,9 @@ const PatientHomeScreen = ({ navigation, route }) => {
     >
       <Image source={item.image} style={styles.avatar} />
       <View style={styles.cardContent}>
-        <Text style={styles.name}>{item.name}</Text>
-        <Text style={styles.title}>{item.title}</Text>
-        <Text style={styles.subtitle}>{item.subtitle}</Text>
+        <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
+        <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
+        <Text style={styles.subtitle} numberOfLines={1}>{item.subtitle}</Text>
         {item.fee != null && !isNaN(item.fee) && (
           <Text style={styles.feeText}>{formatEtb(item.fee)}/session</Text>
         )}
@@ -346,6 +347,8 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     flex: 1,
+    minWidth: 0,
+    marginRight: SPACING.sm,
   },
   name: {
     fontSize: FONTS.sizes.lg,
@@ -371,9 +374,10 @@ const styles = StyleSheet.create({
   actionButton: {
     backgroundColor: COLORS.primary,
     paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingHorizontal: 14,
     borderRadius: RADIUS.full,
     ...SHADOWS.sm,
+    flexShrink: 0,
   },
   actionButtonText: {
     color: COLORS.white,

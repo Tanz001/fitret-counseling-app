@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import CustomIcon from '../components/CustomIcon';
 import { COLORS, FONTS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
 import { formatEtb } from '../constants/currency';
@@ -7,6 +8,7 @@ import { PatientAppointmentSkeleton } from '../components/SkeletonLoaders';
 import { supabase } from '../utils/supabase';
 import { useFocusEffect } from '@react-navigation/native';
 import moment from 'moment';
+import { formatDisplayTime } from '../constants/formatters';
 
 const FILTERS = ['All', 'pending', 'confirmed', 'completed', 'cancelled'];
 
@@ -65,6 +67,7 @@ const AppointmentsScreen = ({ navigation }) => {
     const sc = getStatusColor(item.status);
     const therapist = item.therapist || {};
     const formattedDate = moment(item.appointment_date).format('MMM D, YYYY');
+    const formattedTime = formatDisplayTime(item.appointment_time);
     
     return (
       <TouchableOpacity
@@ -75,7 +78,7 @@ const AppointmentsScreen = ({ navigation }) => {
             doctor: therapist.full_name || 'Therapist',
             title: therapist.specialization || 'Mental Health Professional',
             date: formattedDate,
-            time: item.appointment_time,
+            time: formattedTime,
             image: therapist.profile_picture ? { uri: therapist.profile_picture } : require('../assets/person.webp'),
             amount: formatEtb(item.fee),
             paymentMethod: item.payment_method?.toUpperCase() || 'Not specified'
@@ -97,7 +100,7 @@ const AppointmentsScreen = ({ navigation }) => {
           <Text style={styles.docTitle}>{therapist.specialization || 'Mental Health Specialist'}</Text>
           <View style={styles.metaRow}>
             <CustomIcon name="calendar-outline" size={14} color={COLORS.gray500} iconType="Ionicons" touchable={false} />
-            <Text style={styles.metaText}>{formattedDate} · {item.appointment_time}</Text>
+            <Text style={styles.metaText}>{formattedDate} · {formattedTime}</Text>
           </View>
           <View style={styles.cardFooter}>
             <Text style={styles.detailsText}>View Details</Text>

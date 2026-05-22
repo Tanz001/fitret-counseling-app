@@ -14,18 +14,24 @@ import {
   Modal,
   StatusBar,
   Image,
-  ImageBackground,
 } from 'react-native';
 import RBSheet from 'react-native-raw-bottom-sheet';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import CustomIcon from '../components/CustomIcon';
 import Loader from '../components/Loader';
 import { supabase } from '../utils/supabase';
+import { resolveSignInEmail, isValidEthiopianMobile } from '../utils/phoneAuth';
+import { formatEthiopianPhone } from '../constants/formatters';
 import { COLORS, FONTS, RADIUS, SPACING, SHADOWS } from '../constants/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LinearGradient from 'react-native-linear-gradient';
 
 const { width, height } = Dimensions.get('window');
+/** hero.jpeg 1600×1068 */
+const CLIENT_HERO_ASPECT = 1600 / 1068;
+const CLIENT_HERO_HEIGHT = height * 0.55;
+const CLIENT_IMAGE_HEIGHT = width / CLIENT_HERO_ASPECT;
+const CLIENT_FORM_PULL_UP = Math.max(0, CLIENT_HERO_HEIGHT - CLIENT_IMAGE_HEIGHT);
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD = 6;
@@ -36,7 +42,9 @@ const AuthScreens = ({ navigation, route }) => {
     authRole === 'therapist' || authRole === 'patient';
 
   const [isLogin, setIsLogin] = useState(true);
+  const [authMethod, setAuthMethod] = useState('email');
   const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -98,6 +106,14 @@ const AuthScreens = ({ navigation, route }) => {
       Alert.alert('Invalid email', 'Please enter a valid email address.');
       return false;
     }
+    if (!phone.trim()) {
+      Alert.alert('Required', 'Please enter your phone number.');
+      return false;
+    }
+    if (!isValidEthiopianMobile(phone)) {
+      Alert.alert('Invalid phone', 'Enter a valid Ethiopian mobile number (9 digits starting with 9).');
+      return false;
+    }
     if (!password) {
       Alert.alert('Required', 'Please enter a password.');
       return false;
@@ -110,12 +126,20 @@ const AuthScreens = ({ navigation, route }) => {
   };
 
   const validateLogin = () => {
-    if (!email.trim()) {
-      Alert.alert('Required', 'Please enter your email.');
+    if (authMethod === 'email') {
+      if (!email.trim()) {
+        Alert.alert('Required', 'Please enter your email.');
+        return false;
+      }
+      if (!EMAIL_REGEX.test(email.trim())) {
+        Alert.alert('Invalid email', 'Please enter a valid email address.');
+        return false;
+      }
+    } else if (!phoneNumber.trim()) {
+      Alert.alert('Required', 'Please enter your phone number.');
       return false;
-    }
-    if (!EMAIL_REGEX.test(email.trim())) {
-      Alert.alert('Invalid email', 'Please enter a valid email address.');
+    } else if (!isValidEthiopianMobile(phoneNumber)) {
+      Alert.alert('Invalid phone', 'Enter a valid Ethiopian mobile number (9 digits starting with 9).');
       return false;
     }
     if (!password) {
@@ -135,8 +159,20 @@ const AuthScreens = ({ navigation, route }) => {
     setLoading(true);
     try {
       if (isLogin) {
+        let signInEmail = email.trim();
+        if (authMethod === 'phone') {
+          signInEmail = await resolveSignInEmail({ authMethod, email, phoneNumber });
+          if (!signInEmail) {
+            Alert.alert(
+              'Account not found',
+              'No account is linked to this phone number. Try email sign-in or sign up first.',
+            );
+            return;
+          }
+        }
+
         const { data, error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
+          email: signInEmail,
           password,
         });
 
@@ -218,7 +254,7 @@ const AuthScreens = ({ navigation, route }) => {
                 full_name: fullName.trim(),
                 email: email.trim(),
                 role,
-                phone: phone.trim() || null,
+                phone: formatEthiopianPhone(phone) || null,
                 gender: gender || null,
                 date_of_birth: dateOfBirth || null,
                 bio: role === 'therapist' ? bio.trim() || null : null,
@@ -262,6 +298,10 @@ const AuthScreens = ({ navigation, route }) => {
   };
 
   const isPatient = role === 'patient';
+  const isTherapistAuth = authRole === 'therapist';
+  const isTherapistSignup = !isLogin && isTherapistAuth;
+  const screenBackground =
+    (isLogin && isTherapistAuth) || isTherapistSignup ? COLORS.gray50 : COLORS.offWhite;
 
   // ─── Full-screen patient login ───────────────────────────────────────────────
   if (isLogin && authRole === 'patient') {
@@ -270,24 +310,15 @@ const AuthScreens = ({ navigation, route }) => {
         <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
         <Loader visible={loading} text="Signing in..." />
 
-        {/* ── TOP: Photo section (Half Screen) ── */}
+        {/* ── TOP: Photo section ── */}
         <View style={styles.clientPhotoSection}>
           <Image
             source={require('../assets/hero.jpeg')}
-            style={styles.clientPhotoSection}
-            resizeMode="cover"
+            style={styles.clientPhotoImage}
+            resizeMode="contain"
           />
-          {/* Logo overlaid on photo */}
-          {/* <View style={styles.clientTopBranding}>
-            <Image
-              source={require('../assets/logo1.webp')}
-              style={styles.clientLogoImg}
-              resizeMode="contain"
-            />
-          </View> */}
         </View>
 
-        {/* DIFFUSION Gradient in the exact center of Image and Form */}
         <LinearGradient
           colors={['transparent', 'rgba(244,238,219,0.7)', '#f4eedb']}
           locations={[0, 0.6, 1]}
@@ -295,18 +326,14 @@ const AuthScreens = ({ navigation, route }) => {
           pointerEvents="none"
         />
 
-
-
-        {/* ── Back button (overlaid absolutely) ── */}
         <TouchableOpacity
           style={styles.clientAbsBackBtn}
-          onPress={() => navigation.navigate('AuthWelcome')}
+          onPress={() => navigation.replace('AuthScreens', { authRole: 'therapist', showLogin: true })}
           activeOpacity={0.8}
         >
-          <CustomIcon iconType="Feather" name="chevron-left" size={22} color={COLORS.white} />
+          <CustomIcon iconType="Feather" name="briefcase" size={20} color={COLORS.white} />
         </TouchableOpacity>
 
-        {/* ── BOTTOM: Form area (skin + green) ── */}
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.clientFormKAV}
@@ -316,24 +343,74 @@ const AuthScreens = ({ navigation, route }) => {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            {/* Green leaf decorators */}
             <View style={styles.leafDecorBL} />
             <View style={styles.leafDecorBR} />
 
-            {/* Email */}
-            <Text style={styles.clientLabel1}>Email</Text>
-            <View style={styles.clientInputWrap}>
-              <CustomIcon iconType="Feather" name="mail" size={18} color="#6f9e8a" style={styles.inputIcon} />
-              <TextInput
-                style={styles.clientInput}
-                placeholder="Enter your email"
-                placeholderTextColor="#99b8ad"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={email}
-                onChangeText={setEmail}
-              />
+            <Text style={styles.clientLabel1}>Sign in with</Text>
+            <View style={styles.methodTabs}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setAuthMethod('email')}
+                style={[styles.methodTab, authMethod === 'email' && styles.methodTabActive]}
+              >
+                <View style={styles.methodTabContent}>
+                  <CustomIcon
+                    iconType="Feather"
+                    name="mail"
+                    size={14}
+                    color={authMethod === 'email' ? '#4e8f7a' : '#7fa293'}
+                    style={styles.methodTabIcon}
+                  />
+                  <Text style={[styles.methodTabText, authMethod === 'email' && styles.methodTabTextActive]}>
+                    Email
+                  </Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setAuthMethod('phone')}
+                style={[styles.methodTab, authMethod === 'phone' && styles.methodTabActive]}
+              >
+                <View style={styles.methodTabContent}>
+                  <CustomIcon
+                    iconType="Feather"
+                    name="phone"
+                    size={14}
+                    color={authMethod === 'phone' ? '#4e8f7a' : '#7fa293'}
+                    style={styles.methodTabIcon}
+                  />
+                  <Text style={[styles.methodTabText, authMethod === 'phone' && styles.methodTabTextActive]}>
+                    Phone
+                  </Text>
+                </View>
+              </TouchableOpacity>
             </View>
+            {authMethod === 'email' ? (
+              <View style={styles.clientInputWrap}>
+                <CustomIcon iconType="Feather" name="mail" size={18} color="#6f9e8a" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.clientInput}
+                  placeholder="Enter your email"
+                  placeholderTextColor="#99b8ad"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  value={email}
+                  onChangeText={setEmail}
+                />
+              </View>
+            ) : (
+              <View style={styles.clientInputWrap}>
+                <Text style={styles.countryPrefix}>+251</Text>
+                <TextInput
+                  style={styles.clientInput}
+                  placeholder="9XXXXXXXX"
+                  placeholderTextColor="#99b8ad"
+                  keyboardType="phone-pad"
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                />
+              </View>
+            )}
 
             {/* Password */}
             <Text style={styles.clientLabel}>Password</Text>
@@ -385,6 +462,13 @@ const AuthScreens = ({ navigation, route }) => {
                 <Text style={styles.footerAction}>Sign up</Text>
               </TouchableOpacity>
             </View>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={styles.therapistSwitchLink}
+              onPress={() => navigation.replace('AuthScreens', { authRole: 'therapist', showLogin: true })}
+            >
+              <Text style={styles.therapistSwitchText}>Click here if therapist</Text>
+            </TouchableOpacity>
 
             <Text style={styles.clientCopyright}>© 2024 Fitret Counseling. All rights reserved.</Text>
           </ScrollView>
@@ -398,7 +482,8 @@ const AuthScreens = ({ navigation, route }) => {
     <View
       style={[
         styles.container,
-        isLogin && authRole === 'therapist' && styles.containerTherapistPaper,
+        { backgroundColor: screenBackground },
+        ((isLogin && isTherapistAuth) || isTherapistSignup) && styles.containerTherapistPaper,
       ]}
     >
       <StatusBar backgroundColor={COLORS.white} barStyle="dark-content" />
@@ -473,7 +558,7 @@ const AuthScreens = ({ navigation, route }) => {
           <View style={styles.therapistLoginHero}>
             <TouchableOpacity
               style={styles.authBackBtn}
-              onPress={() => navigation.navigate('AuthWelcome')}
+              onPress={() => navigation.replace('AuthScreens', { authRole: 'patient', showLogin: true })}
               activeOpacity={0.8}
             >
               <CustomIcon
@@ -503,25 +588,30 @@ const AuthScreens = ({ navigation, route }) => {
             </View>
           </View>
         ) : (
-          <ImageBackground
-            source={require('../assets/hero.jpeg')}
-            style={styles.loginHero}
-            imageStyle={styles.loginHeroImage}
-            resizeMode="cover"
-          >
-            <View style={styles.loginHeroOverlay} />
+          <View style={styles.loginHero}>
+            <Image
+              source={require('../assets/hero.jpeg')}
+              style={styles.loginHeroImage}
+              resizeMode="contain"
+            />
+            <LinearGradient
+              colors={['transparent', 'rgba(244,238,219,0.5)', '#f4eedb']}
+              locations={[0, 0.5, 1]}
+              style={styles.loginHeroGradient}
+              pointerEvents="none"
+            />
             <View style={styles.loginHeroTextWrap}>
               <Text style={styles.loginHeadline}>Welcome Back</Text>
               <Text style={styles.loginSubheadline}>Sign in to continue your journey</Text>
             </View>
-          </ImageBackground>
+          </View>
         )
       ) : (
-        <View style={styles.headerSimple}>
+        <View style={[styles.headerSimple, isTherapistSignup && styles.headerSimpleTherapist]}>
           {isRoleLocked && (
             <TouchableOpacity
               style={styles.signupBackRow}
-              onPress={() => navigation.navigate('AuthWelcome')}
+              onPress={() => navigation.replace('AuthScreens', { authRole: 'patient', showLogin: true })}
               activeOpacity={0.8}
             >
               <CustomIcon
@@ -546,13 +636,19 @@ const AuthScreens = ({ navigation, route }) => {
       )}
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={[styles.keyboardView, { backgroundColor: screenBackground }]}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 6 : 0}
       >
         <ScrollView
+          style={[styles.keyboardScroll, { backgroundColor: screenBackground }]}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          bounces={false}
+          overScrollMode="never"
+          nestedScrollEnabled
         >
           <View style={styles.formContainer}>
             {!isRoleLocked && (
@@ -591,32 +687,25 @@ const AuthScreens = ({ navigation, route }) => {
                   />
                 </View>
 
-                <Text style={styles.label}>Phone (optional)</Text>
-                <View style={styles.inputWrap}>
-                  <CustomIcon iconType="Feather" name="phone" size={18} color={COLORS.gray400} style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Phone number"
-                    placeholderTextColor={COLORS.gray400}
-                    keyboardType="phone-pad"
-                    value={phone}
-                    onChangeText={setPhone}
-                  />
-                </View>
-
                 <Text style={styles.label}>Gender</Text>
                 <TouchableOpacity style={styles.inputWrap} onPress={openGenderSheet} activeOpacity={0.8}>
                   <CustomIcon iconType="Feather" name="user" size={18} color={COLORS.gray400} style={styles.inputIcon} />
-                  <Text style={[styles.input, styles.placeholderText, gender && styles.valueText, { lineHeight: 52 }]}>
+                  <Text
+                    style={[styles.pickerFieldText, gender ? styles.valueText : styles.placeholderText]}
+                    numberOfLines={1}
+                  >
                     {gender || 'Select your gender'}
                   </Text>
                   <CustomIcon iconType="Feather" name="chevron-down" size={18} color={COLORS.gray400} />
                 </TouchableOpacity>
 
-                <Text style={styles.label}>Date of birth</Text>
+                <Text style={styles.label}>Date of birth (optional)</Text>
                 <TouchableOpacity style={styles.inputWrap} onPress={() => setShowDobPicker(true)} activeOpacity={0.8}>
                   <CustomIcon iconType="Feather" name="calendar" size={18} color={COLORS.gray400} style={styles.inputIcon} />
-                  <Text style={[styles.input, styles.placeholderText, dateOfBirth && styles.valueText, { lineHeight: 52 }]}>
+                  <Text
+                    style={[styles.pickerFieldText, dateOfBirth ? styles.valueText : styles.placeholderText]}
+                    numberOfLines={1}
+                  >
                     {dateOfBirth || 'Select your date of birth'}
                   </Text>
                   <CustomIcon iconType="Feather" name="chevron-down" size={18} color={COLORS.gray400} />
@@ -624,19 +713,104 @@ const AuthScreens = ({ navigation, route }) => {
               </>
             )}
 
-            <Text style={styles.label}>Email</Text>
-            <View style={[styles.inputWrap, isLogin && styles.loginInputWrap]}>
-              <CustomIcon iconType="Feather" name="mail" size={18} color={COLORS.gray400} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="your@email.com"
-                placeholderTextColor={COLORS.gray400}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={email}
-                onChangeText={setEmail}
-              />
-            </View>
+            {isLogin ? (
+              <>
+                <Text style={styles.label}>Sign in with</Text>
+                <View style={styles.methodTabsMain}>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => setAuthMethod('email')}
+                    style={[styles.methodTabMain, authMethod === 'email' && styles.methodTabMainActive]}
+                  >
+                    <View style={styles.methodTabMainContent}>
+                      <CustomIcon
+                        iconType="Feather"
+                        name="mail"
+                        size={14}
+                        color={authMethod === 'email' ? COLORS.primary : COLORS.gray500}
+                        style={styles.methodTabIcon}
+                      />
+                      <Text style={[styles.methodTabMainText, authMethod === 'email' && styles.methodTabMainTextActive]}>
+                        Email
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => setAuthMethod('phone')}
+                    style={[styles.methodTabMain, authMethod === 'phone' && styles.methodTabMainActive]}
+                  >
+                    <View style={styles.methodTabMainContent}>
+                      <CustomIcon
+                        iconType="Feather"
+                        name="phone"
+                        size={14}
+                        color={authMethod === 'phone' ? COLORS.primary : COLORS.gray500}
+                        style={styles.methodTabIcon}
+                      />
+                      <Text style={[styles.methodTabMainText, authMethod === 'phone' && styles.methodTabMainTextActive]}>
+                        Phone
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+                {authMethod === 'email' ? (
+                  <View style={[styles.inputWrap, styles.loginInputWrap]}>
+                    <CustomIcon iconType="Feather" name="mail" size={18} color={COLORS.gray400} style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="your@email.com"
+                      placeholderTextColor={COLORS.gray400}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      value={email}
+                      onChangeText={setEmail}
+                    />
+                  </View>
+                ) : (
+                  <View style={[styles.inputWrap, styles.loginInputWrap]}>
+                    <Text style={styles.countryPrefixMain}>+251</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="9XXXXXXXX"
+                      placeholderTextColor={COLORS.gray400}
+                      keyboardType="phone-pad"
+                      value={phoneNumber}
+                      onChangeText={setPhoneNumber}
+                    />
+                  </View>
+                )}
+              </>
+            ) : (
+              <>
+                <Text style={styles.label}>Email</Text>
+                <View style={styles.inputWrap}>
+                  <CustomIcon iconType="Feather" name="mail" size={18} color={COLORS.gray400} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="your@email.com"
+                    placeholderTextColor={COLORS.gray400}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    value={email}
+                    onChangeText={setEmail}
+                  />
+                </View>
+
+                <Text style={styles.label}>Phone number</Text>
+                <View style={styles.inputWrap}>
+                  <Text style={styles.countryPrefixMain}>+251</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="9XXXXXXXX"
+                    placeholderTextColor={COLORS.gray400}
+                    keyboardType="phone-pad"
+                    value={phone}
+                    onChangeText={setPhone}
+                  />
+                </View>
+              </>
+            )}
 
             <Text style={styles.label}>Password</Text>
             <View style={[styles.inputWrap, isLogin && styles.loginInputWrap]}>
@@ -766,21 +940,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f4eedb',   // warm skin base
   },
-  // Top photo block takes exactly half the screen
   clientPhotoSection: {
     width: '100%',
-    height: height * 0.48,
+    height: CLIENT_HERO_HEIGHT,
     backgroundColor: '#f4eedb',
     overflow: 'hidden',
-
+    alignItems: 'center',
   },
-  // Gradient straddles the 50% line to merge the image and form
+  clientPhotoImage: {
+    width: '100%',
+    height: CLIENT_IMAGE_HEIGHT,
+  },
   clientDiffusionGradient: {
     position: 'absolute',
     left: 0,
     right: 0,
-    top: height * 0.35,   // Starts above the halfway split
-    height: height * 0.20, // Occupies the intersection
+    top: CLIENT_IMAGE_HEIGHT - height * 0.1,
+    height: height * 0.16,
     zIndex: 2,
   },
   clientAbsBackBtn: {
@@ -826,12 +1002,13 @@ const styles = StyleSheet.create({
   clientFormKAV: {
     flex: 1,
     backgroundColor: '#f4eedb',
-    zIndex: 1,
+    zIndex: 3,
+    marginTop: -CLIENT_FORM_PULL_UP,
   },
   clientFormScroll: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 10,
+    paddingTop: 4,
     paddingBottom: 60,
   },
   // Green leaf decorators (bottom-left & bottom-right corners)
@@ -860,7 +1037,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#4e4b45',
     marginBottom: 7,
-    marginTop: 22,
+    marginTop: 10,
   },
   clientLabel: {
     fontSize: 13,
@@ -885,6 +1062,12 @@ const styles = StyleSheet.create({
     // shadowOpacity: 0.08,
     // shadowRadius: 4,
     // elevation: 2,
+  },
+  countryPrefix: {
+    marginRight: SPACING.sm,
+    color: '#6f9e8a',
+    fontWeight: '700',
+    fontSize: 15,
   },
   clientInput: {
     flex: 1,
@@ -930,6 +1113,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: 18,
+  },
+  therapistSwitchLink: {
+    alignSelf: 'center',
+    marginTop: 6,
+  },
+  therapistSwitchText: {
+    color: '#6f9e8a',
+    fontSize: 13,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
   clientCopyright: {
     textAlign: 'center',
@@ -1081,35 +1274,33 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
   keyboardView: { flex: 1 },
+  keyboardScroll: { flex: 1 },
   scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.lg,
-    paddingBottom: SPACING.xxl,
+    paddingBottom: SPACING.xxl + 16,
+  },
+  headerSimpleTherapist: {
+    backgroundColor: COLORS.gray50,
+    borderBottomColor: COLORS.gray100,
   },
   loginHero: {
-    alignItems: 'center',
-    minHeight: Math.round(height * 0.42),
-    paddingTop: 60,
-    paddingBottom: 40,
-    borderBottomLeftRadius: 40,
-    borderBottomRightRadius: 40,
+    width: '100%',
+    height: Math.round(height * 0.42),
+    backgroundColor: '#e8e4dc',
+    overflow: 'hidden',
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 20 },
       android: { elevation: 8 },
     }),
-    overflow: 'hidden',
   },
   loginHeroImage: {
-    borderBottomLeftRadius: 40,
-    borderBottomRightRadius: 40,
+    width: '100%',
+    height: '100%',
   },
-  loginHeroOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+  loginHeroGradient: {
+    ...StyleSheet.absoluteFillObject,
   },
   loginHeroTextWrap: {
     position: 'absolute',
@@ -1121,12 +1312,12 @@ const styles = StyleSheet.create({
   loginHeadline: {
     fontSize: 28,
     fontWeight: '800',
-    color: COLORS.white,
+    color: '#2f2f2f',
     letterSpacing: -0.5,
   },
   loginSubheadline: {
     fontSize: 16,
-    color: 'rgba(255,255,255,0.92)',
+    color: '#6f9e8a',
     marginTop: 8,
     fontWeight: '500',
   },
@@ -1155,6 +1346,46 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.sm,
     padding: 4,
     marginBottom: SPACING.xl,
+  },
+  methodTabsMain: {
+    flexDirection: 'row',
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    padding: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    marginBottom: SPACING.md,
+  },
+  methodTabMain: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 0,
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  methodTabMainActive: {
+    borderBottomColor: COLORS.primary,
+  },
+  methodTabMainContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  methodTabMainText: {
+    color: COLORS.gray600,
+    fontWeight: '600',
+    fontSize: FONTS.sizes.sm,
+  },
+  methodTabMainTextActive: {
+    color: COLORS.primary,
+    fontWeight: '700',
+  },
+  countryPrefixMain: {
+    marginRight: SPACING.sm,
+    color: COLORS.gray700,
+    fontWeight: '700',
+    fontSize: FONTS.sizes.md,
   },
   tabButton: {
     flex: 1,
@@ -1198,6 +1429,42 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
     paddingHorizontal: SPACING.lg,
   },
+  methodTabs: {
+    flexDirection: 'row',
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    padding: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#d7e5de',
+    marginBottom: 14,
+  },
+  methodTab: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 0,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  methodTabActive: {
+    borderBottomColor: '#4e8f7a',
+  },
+  methodTabContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  methodTabIcon: {
+    marginRight: 6,
+  },
+  methodTabText: {
+    fontSize: 13.5,
+    fontWeight: '600',
+    color: '#6f9e8a',
+  },
+  methodTabTextActive: {
+    color: '#4e8f7a',
+    fontWeight: '700',
+  },
   loginInputWrap: {
     height: 45,
     borderRadius: 8,
@@ -1206,6 +1473,15 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   inputIcon: { marginRight: SPACING.sm },
+  pickerFieldText: {
+    flex: 1,
+    fontSize: FONTS.sizes.md,
+    paddingVertical: 0,
+    ...Platform.select({
+      android: { includeFontPadding: false, textAlignVertical: 'center' },
+      ios: { lineHeight: 20 },
+    }),
+  },
   input: {
     flex: 1,
     fontSize: FONTS.sizes.md,
@@ -1214,12 +1490,17 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   inputWrapMultiline: {
-    height: 'auto',
-    minHeight: 120,
+    height: 120,
     alignItems: 'flex-start',
     paddingVertical: SPACING.sm,
   },
-  inputMultiline: { height: 120, textAlignVertical: 'top', paddingTop: SPACING.xs, paddingBottom: SPACING.xs },
+  inputMultiline: {
+    flex: 1,
+    width: '100%',
+    textAlignVertical: 'top',
+    paddingTop: SPACING.xs,
+    paddingBottom: SPACING.xs,
+  },
   placeholderText: { color: COLORS.gray400 },
   valueText: { color: COLORS.gray900 },
   eyeBtn: { padding: SPACING.sm },

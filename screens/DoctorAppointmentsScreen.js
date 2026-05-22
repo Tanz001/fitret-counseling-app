@@ -3,32 +3,35 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   FlatList,
   TouchableOpacity,
   StatusBar,
   ActivityIndicator,
   Image,
+  Modal,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import CustomIcon from '../components/CustomIcon';
-import {COLORS, FONTS, SPACING, RADIUS, SHADOWS} from '../constants/theme';
+import { COLORS, FONTS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
 import { DoctorAppointmentSkeleton } from '../components/SkeletonLoaders';
 import { supabase } from '../utils/supabase';
 import { useFocusEffect } from '@react-navigation/native';
 import moment from 'moment';
+import { formatDisplayTime } from '../constants/formatters';
 
-const DoctorAppointmentsScreen = ({navigation}) => {
+const DoctorAppointmentsScreen = ({ navigation }) => {
   const [filter, setFilter] = useState('Upcoming');
   const [sessionTypeFilter, setSessionTypeFilter] = useState('all');
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isTypePickerVisible, setIsTypePickerVisible] = useState(false);
   const SESSION_TYPE_OPTIONS = [
-    {label: 'All', value: 'all'},
-    {label: 'General', value: 'general'},
-    {label: 'Individual', value: 'individual'},
-    {label: 'Couple', value: 'couple'},
-    {label: 'Child', value: 'child'},
-    {label: 'Group', value: 'group'},
+    { label: 'All', value: 'all' },
+    { label: 'General', value: 'general' },
+    { label: 'Individual', value: 'individual' },
+    { label: 'Couple', value: 'couple' },
+    { label: 'Child', value: 'child' },
+    { label: 'Group', value: 'group' },
   ];
   const formatSessionType = (type) => {
     if (!type) return 'General';
@@ -111,15 +114,16 @@ const DoctorAppointmentsScreen = ({navigation}) => {
     return (a.session_type || 'general') === sessionTypeFilter;
   });
 
-  const renderItem = ({item}) => {
+  const renderItem = ({ item }) => {
     const patientRaw = item.patient;
     // Defensive check if patient is an array or object
     const patient = Array.isArray(patientRaw) ? patientRaw[0] : (patientRaw || {});
-    const profileImage = patient.profile_picture 
-      ? { uri: patient.profile_picture } 
+    const profileImage = patient.profile_picture
+      ? { uri: patient.profile_picture }
       : null;
 
     const formattedDate = moment(item.appointment_date).format('MMM D, YYYY');
+    const formattedTime = formatDisplayTime(item.appointment_time);
     const isToday = moment(item.appointment_date).isSame(moment(), 'day');
     const dateLabel = isToday ? 'Today' : formattedDate;
 
@@ -128,17 +132,17 @@ const DoctorAppointmentsScreen = ({navigation}) => {
         style={styles.card}
         activeOpacity={0.9}
         onPress={() =>
-          navigation.navigate('DoctorAppointmentDetail', { 
+          navigation.navigate('DoctorAppointmentDetail', {
             appointment: {
               ...item,
               patient: patient,
               name: patient.full_name || 'Patient',
               issue: item.notes || 'General Session',
               date: dateLabel,
-              time: item.appointment_time,
+              time: formattedTime,
               status: item.status.charAt(0).toUpperCase() + item.status.slice(1),
               type: formatSessionType(item.session_type),
-            } 
+            }
           })
         }>
         <View style={styles.cardHeader}>
@@ -159,26 +163,26 @@ const DoctorAppointmentsScreen = ({navigation}) => {
               iconType="Feather"
               touchable={false}
             />
-            <Text style={styles.dateText}>{item.appointment_time}</Text>
+            <Text style={styles.dateText}>{formattedTime}</Text>
           </View>
           <View
             style={[
               styles.statusBadge,
-              item.status === 'completed' ? styles.statusBadgeCompleted : 
-              item.status === 'confirmed' ? styles.statusBadgeConfirmed : {},
+              item.status === 'completed' ? styles.statusBadgeCompleted :
+                item.status === 'confirmed' ? styles.statusBadgeConfirmed : {},
             ]}>
             <View
               style={[
                 styles.statusDot,
-                item.status === 'completed' ? styles.statusDotCompleted : 
-                item.status === 'confirmed' ? styles.statusDotConfirmed : {},
+                item.status === 'completed' ? styles.statusDotCompleted :
+                  item.status === 'confirmed' ? styles.statusDotConfirmed : {},
               ]}
             />
             <Text
               style={[
                 styles.statusText,
-                item.status === 'completed' ? styles.statusTextCompleted : 
-                item.status === 'confirmed' ? styles.statusTextConfirmed : {},
+                item.status === 'completed' ? styles.statusTextCompleted :
+                  item.status === 'confirmed' ? styles.statusTextConfirmed : {},
               ]}>
               {item.status.toUpperCase()}
             </Text>
@@ -197,7 +201,7 @@ const DoctorAppointmentsScreen = ({navigation}) => {
               </View>
             )}
           </View>
-          <View style={{flex: 1}}>
+          <View style={{ flex: 1 }}>
             <Text style={styles.patientName}>{patient.full_name || 'Patient'}</Text>
             <Text style={styles.patientIssue}>{item.notes || 'General Session'}</Text>
           </View>
@@ -216,7 +220,7 @@ const DoctorAppointmentsScreen = ({navigation}) => {
               <Text style={styles.typeText}>{formatSessionType(item.session_type)}</Text>
             </View>
             <TouchableOpacity style={styles.joinBtn}>
-              <Text style={styles.joinBtnText}>Join Session</Text>
+              <Text style={styles.joinBtnText}>View details</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -266,27 +270,63 @@ const DoctorAppointmentsScreen = ({navigation}) => {
         </TouchableOpacity>
       </View>
       <View style={styles.sessionTypeFilterWrap}>
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={SESSION_TYPE_OPTIONS}
-          keyExtractor={(item) => item.value}
-          contentContainerStyle={styles.sessionTypeFilterContent}
-          renderItem={({item}) => {
-            const active = sessionTypeFilter === item.value;
-            return (
-              <TouchableOpacity
-                style={[styles.sessionTypeChip, active && styles.sessionTypeChipActive]}
-                onPress={() => setSessionTypeFilter(item.value)}
-                activeOpacity={0.8}>
-                <Text style={[styles.sessionTypeChipText, active && styles.sessionTypeChipTextActive]}>
-                  {item.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          }}
-        />
+        <TouchableOpacity
+          style={styles.dropdownSelector}
+          onPress={() => setIsTypePickerVisible(true)}
+          activeOpacity={0.8}
+        >
+          <View style={styles.dropdownLeft}>
+            <CustomIcon name="filter" size={16} color={COLORS.primary} iconType="Feather" touchable={false} />
+            <Text style={styles.dropdownLabel}>Session Type:</Text>
+            <Text style={styles.dropdownValue}>
+              {SESSION_TYPE_OPTIONS.find(opt => opt.value === sessionTypeFilter)?.label}
+            </Text>
+          </View>
+          <CustomIcon name="chevron-down" size={20} color={COLORS.gray400} iconType="Feather" touchable={false} />
+        </TouchableOpacity>
       </View>
+
+      <Modal
+        visible={isTypePickerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsTypePickerVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setIsTypePickerVisible(false)}
+        >
+          <View style={styles.pickerContent}>
+            <View style={styles.pickerHeader}>
+              <Text style={styles.pickerTitle}>Select Session Type</Text>
+              <TouchableOpacity onPress={() => setIsTypePickerVisible(false)}>
+                <CustomIcon name="x" size={24} color={COLORS.gray900} iconType="Feather" touchable={false} />
+              </TouchableOpacity>
+            </View>
+            {SESSION_TYPE_OPTIONS.map((item) => {
+              const active = sessionTypeFilter === item.value;
+              return (
+                <TouchableOpacity
+                  key={item.value}
+                  style={[styles.pickerItem, active && styles.pickerItemActive]}
+                  onPress={() => {
+                    setSessionTypeFilter(item.value);
+                    setIsTypePickerVisible(false);
+                  }}
+                >
+                  <Text style={[styles.pickerItemText, active && styles.pickerItemTextActive]}>
+                    {item.label}
+                  </Text>
+                  {active && (
+                    <CustomIcon name="check" size={20} color={COLORS.primary} iconType="Feather" touchable={false} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {loading ? (
         <View style={styles.listContainer}>
@@ -323,7 +363,7 @@ const DoctorAppointmentsScreen = ({navigation}) => {
 };
 
 const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: COLORS.offWhite},
+  container: { flex: 1, backgroundColor: COLORS.offWhite },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -353,7 +393,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.gray100,
-    paddingHorizontal: SPACING.lg, 
+    paddingHorizontal: SPACING.lg,
   },
   tab: {
     flex: 1,
@@ -362,9 +402,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
-  activeTab: {borderBottomColor: COLORS.primary},
-  tabText: {fontSize: FONTS.sizes.md, color: COLORS.gray500, fontWeight: '600'},
-  activeTabText: {color: COLORS.primary},
+  activeTab: { borderBottomColor: COLORS.primary },
+  tabText: { fontSize: FONTS.sizes.md, color: COLORS.gray500, fontWeight: '600' },
+  activeTabText: { color: COLORS.primary },
   sessionTypeFilterWrap: {
     backgroundColor: COLORS.white,
     borderBottomWidth: 1,
@@ -396,8 +436,84 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontWeight: '700',
   },
+  dropdownSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.gray50,
+    marginHorizontal: SPACING.lg,
+    marginTop: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 12,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.gray200,
+  },
+  dropdownLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dropdownLabel: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.gray500,
+    fontWeight: '600',
+  },
+  dropdownValue: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.gray900,
+    fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  pickerContent: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: RADIUS.xl,
+    borderTopRightRadius: RADIUS.xl,
+    padding: SPACING.lg,
+    paddingBottom: SPACING.xl * 2,
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.lg,
+    paddingBottom: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.gray100,
+  },
+  pickerTitle: {
+    fontSize: FONTS.sizes.lg,
+    fontWeight: '700',
+    color: COLORS.gray900,
+  },
+  pickerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.gray50,
+  },
+  pickerItemActive: {
+    backgroundColor: COLORS.primary + '08',
+    marginHorizontal: -SPACING.lg,
+    paddingHorizontal: SPACING.lg,
+  },
+  pickerItemText: {
+    fontSize: FONTS.sizes.md,
+    color: COLORS.gray700,
+    fontWeight: '500',
+  },
+  pickerItemTextActive: {
+    color: COLORS.primary,
+    fontWeight: '700',
+  },
 
-  listContainer: {padding: SPACING.lg, paddingBottom: 100},
+  listContainer: { padding: SPACING.lg, paddingBottom: 100 },
 
   card: {
     backgroundColor: COLORS.white,
@@ -413,7 +529,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  dateTimeRow: {flexDirection: 'row', alignItems: 'center'},
+  dateTimeRow: { flexDirection: 'row', alignItems: 'center' },
   dateText: {
     color: COLORS.gray700,
     fontWeight: '600',
@@ -435,8 +551,8 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: RADIUS.full,
   },
-  statusBadgeCompleted: {backgroundColor: '#E6F4EA'},
-  statusBadgeConfirmed: {backgroundColor: '#E3F2FD'},
+  statusBadgeCompleted: { backgroundColor: '#E6F4EA' },
+  statusBadgeConfirmed: { backgroundColor: '#E3F2FD' },
   statusDot: {
     width: 6,
     height: 6,
@@ -444,12 +560,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#B8860B',
     marginRight: 4,
   },
-  statusDotCompleted: {backgroundColor: COLORS.success},
-  statusDotConfirmed: {backgroundColor: '#1976D2'},
-  statusText: {fontSize: FONTS.sizes.xs, fontWeight: '700', color: '#B8860B'},
-  statusTextCompleted: {color: COLORS.success},
-  statusTextConfirmed: {color: '#1976D2'},
-  loaderContainer: {flex: 1, justifyContent: 'center', alignItems: 'center'},
+  statusDotCompleted: { backgroundColor: COLORS.success },
+  statusDotConfirmed: { backgroundColor: '#1976D2' },
+  statusText: { fontSize: FONTS.sizes.xs, fontWeight: '700', color: '#B8860B' },
+  statusTextCompleted: { color: COLORS.success },
+  statusTextConfirmed: { color: '#1976D2' },
+  loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
   divider: {
     height: 1,
@@ -489,7 +605,7 @@ const styles = StyleSheet.create({
     color: COLORS.gray900,
     marginBottom: 2,
   },
-  patientIssue: {fontSize: FONTS.sizes.sm, color: COLORS.gray500},
+  patientIssue: { fontSize: FONTS.sizes.sm, color: COLORS.gray500 },
 
   cardFooter: {
     flexDirection: 'row',

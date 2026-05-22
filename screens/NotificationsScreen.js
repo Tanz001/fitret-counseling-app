@@ -7,7 +7,7 @@ import { COLORS, FONTS, SPACING, RADIUS } from '../constants/theme';
 const MOCK_NOTIFICATIONS = [
   { id: '1', title: 'Upcoming Appointment', message: 'You have a session with Dr. Aisha in 30 minutes.', time: '1h ago', type: 'appointment', read: false },
   { id: '2', title: 'New Message', message: 'Sarah M. sent you a new message.', time: '2h ago', type: 'message', read: false },
-  { id: '3', title: 'Payment Successful', message: 'Your wallet has been credited with $150.', time: 'Yesterday', type: 'wallet', read: true },
+  { id: '3', title: 'Payment Successful', message: 'Your wallet has been credited with ETB 150.', time: 'Yesterday', type: 'wallet', read: true },
 ];
 
 const NotificationsScreen = ({ navigation }) => {

@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TextInput,
   TouchableOpacity,
   FlatList,
@@ -12,11 +11,12 @@ import {
   Image,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import CustomIcon from '../components/CustomIcon';
 import { COLORS, FONTS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
 import { supabase } from '../utils/supabase';
 
-const AI_AVATAR = require('../assets/person.webp'); // Replace with a bot icon if available
+const AI_AVATAR = require('../assets/logoo.png');
 
 const INITIAL_MESSAGES = [
   {
@@ -26,6 +26,8 @@ const INITIAL_MESSAGES = [
     timestamp: new Date().toISOString(),
   },
 ];
+
+const HEADER_APPROX = 56;
 
 const AIChatBotScreen = ({ navigation }) => {
   const [messages, setMessages] = useState(INITIAL_MESSAGES);
@@ -75,45 +77,49 @@ const AIChatBotScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <CustomIcon name="chevron-left" size={24} color={COLORS.gray700} iconType="Feather" touchable={false} />
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>Fitret Chat</Text>
-          <View style={styles.statusRow}>
-            <View style={styles.onlineDot} />
-            <Text style={styles.statusText}>Always Online</Text>
-          </View>
-        </View>
-        <TouchableOpacity style={styles.moreBtn}>
-          <CustomIcon name="more-vertical" size={20} color={COLORS.gray700} iconType="Feather" touchable={false} />
-        </TouchableOpacity>
-      </View>
-
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.chatList}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-        onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
-      />
-
-      {isTyping && (
-        <View style={styles.typingContainer}>
-          <ActivityIndicator size="small" color={COLORS.primary} />
-          <Text style={styles.typingText}>Thinking...</Text>
-        </View>
-      )}
-
+    <SafeAreaView style={styles.container} edges={['top']}>
       <KeyboardAvoidingView
+        style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? HEADER_APPROX : 0}
       >
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <CustomIcon name="chevron-left" size={24} color={COLORS.gray700} iconType="Feather" touchable={false} />
+          </TouchableOpacity>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>Fitret Chat</Text>
+            <View style={styles.statusRow}>
+              <View style={styles.onlineDot} />
+              <Text style={styles.statusText}>Always Online</Text>
+            </View>
+          </View>
+          <TouchableOpacity style={styles.moreBtn}>
+            <CustomIcon name="more-vertical" size={20} color={COLORS.gray700} iconType="Feather" touchable={false} />
+          </TouchableOpacity>
+        </View>
+
+        <FlatList
+          ref={flatListRef}
+          style={styles.chatList}
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={item => item.id}
+          contentContainerStyle={styles.chatListContent}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+          onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
+        />
+
+        {isTyping && (
+          <View style={styles.typingContainer}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+            <Text style={styles.typingText}>Thinking...</Text>
+          </View>
+        )}
+
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
@@ -122,8 +128,8 @@ const AIChatBotScreen = ({ navigation }) => {
             onChangeText={setInputText}
             multiline
           />
-          <TouchableOpacity 
-            style={[styles.sendBtn, !inputText.trim() && styles.sendBtnDisabled]} 
+          <TouchableOpacity
+            style={[styles.sendBtn, !inputText.trim() && styles.sendBtnDisabled]}
             onPress={handleSend}
             disabled={!inputText.trim()}
           >
@@ -137,6 +143,7 @@ const AIChatBotScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.offWhite },
+  flex: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -153,7 +160,8 @@ const styles = StyleSheet.create({
   onlineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#4CAF50', marginRight: 6 },
   statusText: { fontSize: 12, color: COLORS.gray500, fontWeight: '500' },
   moreBtn: { padding: 8 },
-  chatList: { padding: SPACING.lg },
+  chatList: { flex: 1 },
+  chatListContent: { padding: SPACING.lg, flexGrow: 1 },
   messageWrapper: { flexDirection: 'row', marginBottom: SPACING.lg, maxWidth: '85%' },
   aiWrapper: { alignSelf: 'flex-start' },
   userWrapper: { alignSelf: 'flex-end' },

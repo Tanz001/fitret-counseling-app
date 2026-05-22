@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ScrollView,
   Switch,
@@ -11,6 +10,7 @@ import {
   StatusBar,
   Modal,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import RBSheet from 'react-native-raw-bottom-sheet';
 import CustomIcon from '../components/CustomIcon';
 import {supabase} from '../utils/supabase';
@@ -128,7 +128,10 @@ const DoctorProfileSettingsScreen = ({navigation}) => {
     return (
       <TouchableOpacity
         style={styles.optionRow}
-        onPress={() => route && navigation.navigate(route)}
+        onPress={() => {
+          if (!route) return;
+          navigation.getParent()?.navigate(route) ?? navigation.navigate(route);
+        }}
         activeOpacity={0.8}>
         <View style={[styles.iconContainer, {backgroundColor: color + '15'}]}>
           <CustomIcon
@@ -250,7 +253,8 @@ const DoctorProfileSettingsScreen = ({navigation}) => {
             'Manage Schedule / Hours',
             'DoctorSchedule',
           )}
-          {renderOptionRow('folder', 'Review Client Documents', 'TherapistTherapyDocuments')}
+          {renderOptionRow('folder', 'Client resources', 'TherapistResources')}
+          {renderOptionRow('file-text', 'Client forms', 'TherapistForms')}
           {renderOptionRow(
             'file-text',
             'Clinical Notes & Templates',
